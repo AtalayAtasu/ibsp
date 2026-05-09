@@ -3,7 +3,7 @@ const express  = require('express');
 const session  = require('express-session');
 const { Pool } = require('pg');
 const bcrypt   = require('bcryptjs');
-const nodemailer = require('nodemailer');
+// nodemailer removed — using Resend HTTP API instead (SMTP blocked on Render)
 const path     = require('path');
 const fs       = require('fs');
 
@@ -156,13 +156,21 @@ app.get('/admin/logout', (req, res) => {
 // Test email route — visit /admin/test-email to check credentials work
 app.get('/admin/test-email', requireAdmin, async (req, res) => {
   try {
-    await mailer.sendMail({
-      from: `"SustComp Test" <${process.env.GMAIL_USER}>`,
-      to:   'atalay.atasu@gmail.com',
-      subject: '[SustComp] Test email — credentials OK',
-      text: 'If you received this, your Gmail credentials are working correctly.'
+    const r = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        from:    'SustComp <onboarding@resend.dev>',
+        to:      ['atalay.atasu@gmail.com'],
+        subject: '[SustComp] Test email — Resend configured OK',
+        html:    '<p>If you received this, Resend is working correctly for SustComp.</p>'
+      })
     });
-    res.send('<p style="font-family:sans-serif;padding:2rem">✅ Test email sent successfully to atalay.atasu@gmail.com — check your inbox (and spam).<br><br><a href="/admin">← Back to admin</a></p>');
+    if (!r.ok) { const e = await r.json(); throw new Error(e.message || `Resend error ${r.status}`); }
+    res.send('<p style="font-family:sans-serif;padding:2rem">✅ Test email sent to atalay.atasu@gmail.com — check your inbox (and spam).<br><br><a href="/admin">← Back to admin</a></p>');
   } catch (e) {
     res.status(500).send(`<p style="font-family:sans-serif;padding:2rem;color:red">❌ Email failed:<br><br><code>${e.message}</code><br><br><a href="/admin">← Back to admin</a></p>`);
   }
@@ -291,18 +299,11 @@ app.post('/api/submit', requireLogin, async (req, res) => {
 
 // ── EMAIL ──────────────────────────────────────────────────────────────────
 
-if (!process.env.GMAIL_USER || !process.env.GMAIL_PASS) {
-  console.warn('WARNING: GMAIL_USER or GMAIL_PASS not set — submission emails will fail');
+if (!process.env.RESEND_API_KEY) {
+  console.warn('WARNING: RESEND_API_KEY not set — submission emails will fail');
 } else {
-  console.log('Email configured for:', process.env.GMAIL_USER);
+  console.log('Email configured via Resend');
 }
-const mailer = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 587,
-  secure: false,
-  requireTLS: true,
-  auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_PASS }
-});
 
 const LEVER_LABELS = {
   cost:  'Cost Reduction',
@@ -421,17 +422,27 @@ async function sendEmail(d) {
   </div>
 </div>`;
 
-  await mailer.sendMail({
-    from:    `"SustComp" <${process.env.GMAIL_USER}>`,
-    to:      'atalay.atasu@gmail.com',
-    subject: `[SustComp] ${d.cohortName || 'No cohort'} — ${d.username} — ${d.challengeName || 'Submission'}`,
-    html:    body,
-    attachments: [{
-      filename:    `sustcomp-${d.username}-${Date.now()}.html`,
-      content:     d.reportHtml || '<p>No report generated.</p>',
-      contentType: 'text/html'
-    }]
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      from:    'SustComp <onboarding@resend.dev>',
+      to:      ['atalay.atasu@gmail.com'],
+      subject: `[SustComp] ${d.cohortName || 'No cohort'} — ${d.username} — ${d.challengeName || 'Submission'}`,
+      html:    body,
+      attachments: [{
+        filename: `sustcomp-${d.username}-${Date.now()}.html`,
+        content:  Buffer.from(d.reportHtml || '<p>No report generated.</p>').toString('base64')
+      }]
+    })
   });
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.message || `Resend error ${res.status}`);
+  }
 }
 
 // ── HTML TEMPLATES ─────────────────────────────────────────────────────────
