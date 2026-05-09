@@ -730,7 +730,7 @@ footer{margin-top:3rem;padding-top:0.8rem;border-top:1px solid #C0D8EE;font-size
   ${chatCount>0?`<div class="ai-note">This report incorporates insights from ${chatCount} AI coaching exchange${chatCount>1?'s':''} across the three stages of analysis.</div>`:''}
 </div>
 ${html}
-<footer>© Atalay Atasu &amp; Karel Cool &nbsp;·&nbsp; Business Sustainability Programme &nbsp;·&nbsp; ${date}</footer>
+<footer>© AcpitConsulting &nbsp;·&nbsp; Business Sustainability Programme &nbsp;·&nbsp; ${date} &nbsp;·&nbsp; <a href="mailto:acpitcons.adm@gmail.com" style="color:#999">acpitcons.adm@gmail.com</a></footer>
 </body></html>`);
             win.document.close();
             win.focus();
@@ -755,7 +755,7 @@ function Sidebar({step,setStep}){
         return<div key={it.id}>{ns&&<><div className="sb-div"/><div className="sb-lbl">{it.sec}</div></>}<div className={`sb-item ${a?'active':''} ${d?'done':''}`} onClick={()=>(d||a)&&setStep(it.id)}><div className="sb-dot">{d?'✓':it.id===0||it.id===4?'◆':it.id}</div>{it.lbl}</div></div>;
       })}
       <div style={{padding:'1.25rem 1.5rem',marginTop:'auto',borderTop:'1px solid rgba(255,255,255,0.06)'}}>
-        <div style={{fontSize:'0.62rem',color:'rgba(255,255,255,0.2)',lineHeight:1.5}}>© Atalay Atasu & Karel Cool<br/>Business Sustainability Programme</div>
+        <div style={{fontSize:'0.62rem',color:'rgba(255,255,255,0.2)',lineHeight:1.5}}>© AcpitConsulting<br/>Business Sustainability Programme<br/><a href="mailto:acpitcons.adm@gmail.com" style={{color:'rgba(255,255,255,0.35)',textDecoration:'none'}}>Contact us</a></div>
       </div>
     </nav>
   );
@@ -767,7 +767,7 @@ function S0({st,set}){
   const sf=k=>e=>set(s=>({...s,fish:{...s.fish,[k]:e.target.value}}));
   return<div>
     <div className="card" style={{textAlign:'center',paddingBottom:'2rem'}}>
-      <div className="card-watermark">© Atasu & Cool</div>
+      <div className="card-watermark">© AcpitConsulting</div>
       <div style={{display:'flex',justifyContent:'center',marginBottom:'1.5rem'}}><Logo dark/></div>
       <div className="ey" style={{display:'flex',justifyContent:'center'}}>Business Sustainability Programme</div>
       <h2 className="ctitle" style={{fontSize:'2rem',marginTop:'0.25rem'}}>Sustainability Strategy Compass</h2>
@@ -783,7 +783,7 @@ function S0({st,set}){
       </div>
     </div>
     <div className="card">
-      <div className="card-watermark">© Atasu & Cool</div>
+      <div className="card-watermark">© AcpitConsulting</div>
       <div className="ey">Group</div><h2 className="ctitle">Who are you?</h2><div className="divl"/>
       <div className="g2">
         <div className="fld"><label>Group name</label><input type="text" value={st.grp.name} onChange={sg('name')} placeholder="e.g. Team Lighthouse"/></div>
@@ -792,7 +792,7 @@ function S0({st,set}){
       <div className="fld" style={{marginBottom:0}}><label>Group members</label><textarea value={st.grp.members} onChange={sg('members')} placeholder="List member names…" style={{minHeight:52}}/></div>
     </div>
     <div className="card">
-      <div className="card-watermark">© Atasu & Cool</div>
+      <div className="card-watermark">© AcpitConsulting</div>
       <div className="ey">Your challenge</div>
       <h2 className="ctitle">Name your sustainability disruptor</h2>
       <p className="csub">Define one specific, salient "fish" — a sustainability challenge from your current business experience.</p>
@@ -821,7 +821,7 @@ function S1({st,set}){
 
   return<div>
     <div className="card">
-      <div className="card-watermark">© Atasu & Cool</div>
+      <div className="card-watermark">© AcpitConsulting</div>
       <div className="ey">Question 1</div>
       <h2 className="ctitle">Stakeholder Analysis</h2>
       <p className="csub">Identify which stakeholder categories are driving the sustainability pressure. <strong>Each active stakeholder will become a benefit line in your NPV+ waterfall in Q3</strong> — linking the strategic analysis directly to the financial case.</p>
@@ -873,7 +873,7 @@ Challenge their lever choice and strategic thinking. Is this the right lever? Is
 
   return<div>
     <div className="card">
-      <div className="card-watermark">© Atasu & Cool</div>
+      <div className="card-watermark">© AcpitConsulting</div>
       <div className="ey">Question 2</div>
       <h2 className="ctitle">Strategic Levers</h2>
       <p className="csub">Select the primary lever that best captures the opportunity, and explain the strategic path in concrete terms.</p>
@@ -936,7 +936,7 @@ Challenge this financial model. What assumptions are most fragile? What is the s
 
   return<div>
     <div className="card">
-      <div className="card-watermark">© Atasu & Cool</div>
+      <div className="card-watermark">© AcpitConsulting</div>
       <div className="ey">Question 3</div>
       <h2 className="ctitle">NPV+ Valuation</h2>
       <p className="csub">Quantify the value of each stakeholder-driven opportunity. The NPV+ framework builds a cumulative waterfall — starting from CAPEX, then adding the present value of each benefit stream — showing exactly which stakeholders tip the project positive, and when.</p>
@@ -955,7 +955,7 @@ Challenge this financial model. What assumptions are most fragile? What is the s
     </div>
 
     <div className="card">
-      <div className="card-watermark">© Atasu & Cool</div>
+      <div className="card-watermark">© AcpitConsulting</div>
       <div className="ey">Stakeholder benefit lines</div>
       <h2 className="ctitle" style={{fontSize:'1.3rem'}}>Quantify each opportunity</h2>
       <p className="csub">For each active stakeholder from Q1, enter the estimated annual financial value. These become the NPV+ waterfall lines.</p>
@@ -1007,7 +1007,7 @@ Challenge this financial model. What assumptions are most fragile? What is the s
     </div>
 
     <div className="card">
-      <div className="card-watermark">© Atasu & Cool</div>
+      <div className="card-watermark">© AcpitConsulting</div>
       <div className="ey">The pitch</div>
       <h2 className="ctitle" style={{fontSize:'1.3rem'}}>Present to your CFO or investor</h2>
       <p className="csub">Walk through the waterfall. Justify each benefit line. Is this a 5-year or 10-year story? What are the key risks?</p>
@@ -1034,7 +1034,7 @@ function S4({st}){
   return<div>
     {showReport&&<CFOReport st={st} onClose={()=>setShowReport(false)}/>}
     <div className="card" style={{marginBottom:'1.5rem'}}>
-      <div className="card-watermark">© Atasu & Cool</div>
+      <div className="card-watermark">© AcpitConsulting</div>
       <div className="ey">Complete output</div>
       <h2 className="ctitle">Group Summary</h2>
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:'1rem',marginTop:'0.5rem'}}>
