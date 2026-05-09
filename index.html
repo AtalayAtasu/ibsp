@@ -487,7 +487,7 @@ function AIConsultant({st}){
 
   const generate=async()=>{
     setState('loading');
-    const sysPrompt=`You are a senior sustainability strategy consultant with deep knowledge of business strategy, ESG, and industry dynamics. You have access to web search to research real-world context. Your task is to produce your own independent expert assessment of a sustainability challenge — structured as a three-stage analysis following the Business Sustainability Programme framework:
+    const sysPrompt=`You are a senior sustainability strategy consultant with deep knowledge of business strategy, ESG, and industry dynamics. You have access to web search to research real-world context. Your task is to produce your own independent expert assessment of a sustainability challenge — structured as a three-stage analysis following this framework:
 
 Q1 STAKEHOLDER ANALYSIS: Identify the four stakeholder categories (Nature & Society, Business Ecosystem, Regulators, Financial Institutions & Investors) that are materially relevant for this challenge and industry. For each: who specifically, what the pressure is, business impact, and where the opportunity lies.
 
@@ -497,7 +497,7 @@ Q3 NPV+ PERSPECTIVE: Provide a qualitative NPV+ assessment — which stakeholder
 
 Use web search to gather current, relevant information about the industry, regulation, and comparable cases. Be direct, specific, and evidence-based. Structure your response with clear section headers: ## Q1: Stakeholder Analysis, ## Q2: Strategic Lever Recommendation, ## Q3: NPV+ Perspective. Use **bold** for key points. Be constructive — this is meant to complement and enrich the group's own analysis.`;
 
-    const prompt=`Research and analyse this sustainability challenge for a group in the Business Sustainability Programme:
+    const prompt=`Research and analyse this sustainability challenge:
 
 COMPANY/GROUP: ${st.grp.name||'Executive team'} | Industry: ${st.grp.industry||'not specified'}
 CHALLENGE: ${st.fish.name||'sustainability challenge'}
@@ -730,7 +730,7 @@ footer{margin-top:3rem;padding-top:0.8rem;border-top:1px solid #C0D8EE;font-size
   ${chatCount>0?`<div class="ai-note">This report incorporates insights from ${chatCount} AI coaching exchange${chatCount>1?'s':''} across the three stages of analysis.</div>`:''}
 </div>
 ${html}
-<footer>© AcpitConsulting &nbsp;·&nbsp; Business Sustainability Programme &nbsp;·&nbsp; ${date} &nbsp;·&nbsp; <a href="mailto:acpitcons.adm@gmail.com" style="color:#999">acpitcons.adm@gmail.com</a></footer>
+<footer>© AcpitConsulting &nbsp;·&nbsp; ${date} &nbsp;·&nbsp; <a href="mailto:acpitcons.adm@gmail.com" style="color:#999">acpitcons.adm@gmail.com</a></footer>
 </body></html>`);
             win.document.close();
             win.focus();
@@ -755,7 +755,7 @@ function Sidebar({step,setStep}){
         return<div key={it.id}>{ns&&<><div className="sb-div"/><div className="sb-lbl">{it.sec}</div></>}<div className={`sb-item ${a?'active':''} ${d?'done':''}`} onClick={()=>(d||a)&&setStep(it.id)}><div className="sb-dot">{d?'✓':it.id===0||it.id===4?'◆':it.id}</div>{it.lbl}</div></div>;
       })}
       <div style={{padding:'1.25rem 1.5rem',marginTop:'auto',borderTop:'1px solid rgba(255,255,255,0.06)'}}>
-        <div style={{fontSize:'0.62rem',color:'rgba(255,255,255,0.2)',lineHeight:1.5}}>© AcpitConsulting<br/>Business Sustainability Programme<br/><a href="mailto:acpitcons.adm@gmail.com" style={{color:'rgba(255,255,255,0.35)',textDecoration:'none'}}>Contact us</a></div>
+        <div style={{fontSize:'0.62rem',color:'rgba(255,255,255,0.2)',lineHeight:1.5}}>© AcpitConsulting<br/><a href="mailto:acpitcons.adm@gmail.com" style={{color:'rgba(255,255,255,0.35)',textDecoration:'none'}}>Contact us</a></div>
       </div>
     </nav>
   );
@@ -769,7 +769,7 @@ function S0({st,set}){
     <div className="card" style={{textAlign:'center',paddingBottom:'2rem'}}>
       <div className="card-watermark">© AcpitConsulting</div>
       <div style={{display:'flex',justifyContent:'center',marginBottom:'1.5rem'}}><Logo dark/></div>
-      <div className="ey" style={{display:'flex',justifyContent:'center'}}>Business Sustainability Programme</div>
+
       <h2 className="ctitle" style={{fontSize:'2rem',marginTop:'0.25rem'}}>Sustainability Strategy Compass</h2>
       <p className="csub" style={{margin:'0.75rem auto 0',textAlign:'center'}}>Identify your sustainability disruptor, map its stakeholders, build a strategic response, and quantify the value — with AI coaching at every stage.</p>
       <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:'1rem',margin:'2rem auto 0',maxWidth:'580px'}}>
@@ -1132,7 +1132,7 @@ function App(){
       <div className="hdr-brand">
         <Logo/>
         <div className="hdr-sep"/>
-        <div><div className="hdr-title">Sustainability Strategy Compass</div><div className="hdr-sub">Business Sustainability Programme</div></div>
+        <div><div className="hdr-title">Sustainability Strategy Compass</div></div>
       </div>
       {(st.grp.name||st.fish.name)&&<div className="hdr-grp">{[st.grp.name,st.fish.name].filter(Boolean).join(' · ')}</div>}
     </header>
