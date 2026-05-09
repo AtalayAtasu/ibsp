@@ -661,7 +661,6 @@ function CFOReport({st, onClose}){
     <div className="report-overlay" onClick={e=>{if(e.target===e.currentTarget)onClose();}}>
       <div className="report-doc">
         <div className="report-doc-hd">
-          <Logo/>
           <h2>Sustainability Strategy Opportunity<br/><span style={{fontSize:'1.1rem',fontWeight:400,color:'rgba(255,255,255,0.7)'}}>{st.fish.name||'Challenge Assessment'}</span></h2>
           <div className="meta">Prepared by: {st.grp.name||'Executive Team'}{st.grp.industry?` · ${st.grp.industry}`:''} · {new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}</div>
           {(st.chats?.q1?.length||st.chats?.q2?.length||st.chats?.q3?.length)
@@ -755,7 +754,7 @@ function Sidebar({step,setStep}){
         return<div key={it.id}>{ns&&<><div className="sb-div"/><div className="sb-lbl">{it.sec}</div></>}<div className={`sb-item ${a?'active':''} ${d?'done':''}`} onClick={()=>(d||a)&&setStep(it.id)}><div className="sb-dot">{d?'✓':it.id===0||it.id===4?'◆':it.id}</div>{it.lbl}</div></div>;
       })}
       <div style={{padding:'1.25rem 1.5rem',marginTop:'auto',borderTop:'1px solid rgba(255,255,255,0.06)'}}>
-        <div style={{fontSize:'0.62rem',color:'rgba(255,255,255,0.2)',lineHeight:1.5}}>© AcpitConsulting<br/><a href="mailto:acpitcons.adm@gmail.com" style={{color:'rgba(255,255,255,0.35)',textDecoration:'none'}}>Contact us</a></div>
+        <div style={{fontSize:'0.62rem',color:'rgba(255,255,255,0.2)',lineHeight:1.5}}>© 2025 AcpitConsulting<br/><a href="mailto:acpitcons.adm@gmail.com" style={{color:'rgba(255,255,255,0.35)',textDecoration:'none'}}>Contact us</a></div>
       </div>
     </nav>
   );
@@ -767,8 +766,7 @@ function S0({st,set}){
   const sf=k=>e=>set(s=>({...s,fish:{...s.fish,[k]:e.target.value}}));
   return<div>
     <div className="card" style={{textAlign:'center',paddingBottom:'2rem'}}>
-      <div className="card-watermark">© AcpitConsulting</div>
-      <div style={{display:'flex',justifyContent:'center',marginBottom:'1.5rem'}}><Logo dark/></div>
+
 
       <h2 className="ctitle" style={{fontSize:'2rem',marginTop:'0.25rem'}}>Sustainability Strategy Compass</h2>
       <p className="csub" style={{margin:'0.75rem auto 0',textAlign:'center'}}>Identify your sustainability disruptor, map its stakeholders, build a strategic response, and quantify the value — with AI coaching at every stage.</p>
@@ -783,7 +781,7 @@ function S0({st,set}){
       </div>
     </div>
     <div className="card">
-      <div className="card-watermark">© AcpitConsulting</div>
+
       <div className="ey">Group</div><h2 className="ctitle">Who are you?</h2><div className="divl"/>
       <div className="g2">
         <div className="fld"><label>Group name</label><input type="text" value={st.grp.name} onChange={sg('name')} placeholder="e.g. Team Lighthouse"/></div>
@@ -792,7 +790,7 @@ function S0({st,set}){
       <div className="fld" style={{marginBottom:0}}><label>Group members</label><textarea value={st.grp.members} onChange={sg('members')} placeholder="List member names…" style={{minHeight:52}}/></div>
     </div>
     <div className="card">
-      <div className="card-watermark">© AcpitConsulting</div>
+
       <div className="ey">Your challenge</div>
       <h2 className="ctitle">Name your sustainability disruptor</h2>
       <p className="csub">Define one specific, salient "fish" — a sustainability challenge from your current business experience.</p>
@@ -821,7 +819,7 @@ function S1({st,set}){
 
   return<div>
     <div className="card">
-      <div className="card-watermark">© AcpitConsulting</div>
+
       <div className="ey">Question 1</div>
       <h2 className="ctitle">Stakeholder Analysis</h2>
       <p className="csub">Identify which stakeholder categories are driving the sustainability pressure. <strong>Each active stakeholder will become a benefit line in your NPV+ waterfall in Q3</strong> — linking the strategic analysis directly to the financial case.</p>
@@ -873,7 +871,7 @@ Challenge their lever choice and strategic thinking. Is this the right lever? Is
 
   return<div>
     <div className="card">
-      <div className="card-watermark">© AcpitConsulting</div>
+
       <div className="ey">Question 2</div>
       <h2 className="ctitle">Strategic Levers</h2>
       <p className="csub">Select the primary lever that best captures the opportunity, and explain the strategic path in concrete terms.</p>
@@ -936,7 +934,7 @@ Challenge this financial model. What assumptions are most fragile? What is the s
 
   return<div>
     <div className="card">
-      <div className="card-watermark">© AcpitConsulting</div>
+
       <div className="ey">Question 3</div>
       <h2 className="ctitle">NPV+ Valuation</h2>
       <p className="csub">Quantify the value of each stakeholder-driven opportunity. The NPV+ framework builds a cumulative waterfall — starting from CAPEX, then adding the present value of each benefit stream — showing exactly which stakeholders tip the project positive, and when.</p>
@@ -955,7 +953,7 @@ Challenge this financial model. What assumptions are most fragile? What is the s
     </div>
 
     <div className="card">
-      <div className="card-watermark">© AcpitConsulting</div>
+
       <div className="ey">Stakeholder benefit lines</div>
       <h2 className="ctitle" style={{fontSize:'1.3rem'}}>Quantify each opportunity</h2>
       <p className="csub">For each active stakeholder from Q1, enter the estimated annual financial value. These become the NPV+ waterfall lines.</p>
@@ -1007,7 +1005,7 @@ Challenge this financial model. What assumptions are most fragile? What is the s
     </div>
 
     <div className="card">
-      <div className="card-watermark">© AcpitConsulting</div>
+
       <div className="ey">The pitch</div>
       <h2 className="ctitle" style={{fontSize:'1.3rem'}}>Present to your CFO or investor</h2>
       <p className="csub">Walk through the waterfall. Justify each benefit line. Is this a 5-year or 10-year story? What are the key risks?</p>
@@ -1034,7 +1032,7 @@ function S4({st}){
   return<div>
     {showReport&&<CFOReport st={st} onClose={()=>setShowReport(false)}/>}
     <div className="card" style={{marginBottom:'1.5rem'}}>
-      <div className="card-watermark">© AcpitConsulting</div>
+
       <div className="ey">Complete output</div>
       <h2 className="ctitle">Group Summary</h2>
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:'1rem',marginTop:'0.5rem'}}>
@@ -1109,8 +1107,7 @@ function S4({st}){
     <AIConsultant st={st}/>
 
     <div style={{background:'linear-gradient(135deg,var(--navy) 0%,var(--navy-l) 100%)',borderRadius:'var(--r-lg)',padding:'2rem',textAlign:'center',border:'1px solid rgba(198,151,47,0.3)'}}>
-      <Logo/>
-      <h3 style={{color:'white',fontSize:'1.15rem',marginTop:'1.25rem'}}>Ready to present to your CFO?</h3>
+      <h3 style={{color:'white',fontSize:'1.15rem'}}>Ready to present to your CFO?</h3>
       <p style={{color:'rgba(255,255,255,0.6)',fontSize:'0.85rem',margin:'0.5rem auto 1.5rem',maxWidth:'480px'}}>
         Generate an AI-augmented executive memo that synthesises your three-stage analysis
         {(st.chats?.q1?.length||st.chats?.q2?.length||st.chats?.q3?.length)?', your AI coaching dialogue,':''} and the consultant opinion into a CFO-ready investment recommendation.
@@ -1130,8 +1127,6 @@ function App(){
   return<div className="app">
     <header className="hdr">
       <div className="hdr-brand">
-        <Logo/>
-        <div className="hdr-sep"/>
         <div><div className="hdr-title">Sustainability Strategy Compass</div></div>
       </div>
       {(st.grp.name||st.fish.name)&&<div className="hdr-grp">{[st.grp.name,st.fish.name].filter(Boolean).join(' · ')}</div>}
