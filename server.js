@@ -100,7 +100,7 @@ const SHARED_CSS = `
   input[type=text],input[type=password]{width:100%;padding:0.65rem 0.9rem;border:1px solid #D0D8E8;border-radius:8px;font-family:inherit;font-size:0.9rem;outline:none;transition:border 0.15s,box-shadow 0.15s;color:#1A1A1A}
   input:focus{border-color:#004080;box-shadow:0 0 0 3px rgba(0,64,128,0.1)}
   .field{margin-bottom:1.1rem}
-  .btn{width:100%;padding:0.75rem;background:#C6972F;color:white;border:none;border-radius:8px;font-family:inherit;font-size:0.92rem;font-weight:500;cursor:pointer;margin-top:0.25rem;transition:filter 0.15s;letter-spacing:0.02em}
+  .btn{width:100%;padding:0.75rem;background:#4AABE8;color:white;border:none;border-radius:8px;font-family:inherit;font-size:0.92rem;font-weight:500;cursor:pointer;margin-top:0.25rem;transition:filter 0.15s;letter-spacing:0.02em}
   .btn:hover{filter:brightness(1.08)}
   .error{background:#FEF2F2;border:1px solid #FCA5A5;color:#B91C1C;border-radius:8px;padding:0.65rem 0.9rem;font-size:0.82rem;margin-bottom:1.1rem}
   .footer{text-align:center;margin-top:1.5rem;font-size:0.72rem;color:#bbb}
