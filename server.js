@@ -121,7 +121,6 @@ function loginHTML(error = '') {
 <div class="card">
   <div class="brand">
     <div class="brand-title">Sustainability Strategy Compass</div>
-    <div class="brand-sub">AcpitConsulting · 2026</div>
   </div>
   <div class="divider"></div>
   ${error ? `<div class="error">${error}</div>` : ''}
@@ -130,7 +129,7 @@ function loginHTML(error = '') {
     <div class="field"><label for="p">Password</label><input id="p" type="password" name="password" autocomplete="current-password" required></div>
     <button class="btn" type="submit">Sign in →</button>
   </form>
-  <div class="footer"><a href="mailto:acpitcons.adm@gmail.com">acpitcons.adm@gmail.com</a></div>
+  <div class="footer">© 2026 AcpitConsulting<br/><a href="mailto:acpitcons.adm@gmail.com">acpitcons.adm@gmail.com</a></div>
 </div>
 </body>
 </html>`;
