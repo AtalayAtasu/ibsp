@@ -257,23 +257,31 @@ let _apiKey = (window.__API_KEY__) || '';
 function getApiKey(){ return _apiKey; }
 function setApiKey(k){ _apiKey = k.trim(); }
 
-/* ─── AI CALL ─── */
+/* ─── AI CALL (with automatic retry on rate-limit) ─── */
 async function callClaude(system, messages, maxTokens=600){
   if(!_apiKey) throw new Error('NO_KEY');
-  const resp=await fetch('https://api.anthropic.com/v1/messages',{
-    method:'POST',
-    headers:{
-      'content-type':'application/json',
-      'x-api-key': _apiKey,
-      'anthropic-version':'2023-06-01',
-      'anthropic-dangerous-direct-browser-access':'true'
-    },
-    body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:maxTokens,system,messages})
-  });
-  const data=await resp.json();
-  if(!resp.ok) throw new Error(`HTTP ${resp.status}: ${data.error?.message||JSON.stringify(data)}`);
-  if(data.error) throw new Error(data.error.message);
-  return data.content[0].text;
+  const RETRIES=3;
+  for(let attempt=0;attempt<RETRIES;attempt++){
+    const resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{
+        'content-type':'application/json',
+        'x-api-key': _apiKey,
+        'anthropic-version':'2023-06-01',
+        'anthropic-dangerous-direct-browser-access':'true'
+      },
+      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:maxTokens,system,messages})
+    });
+    const data=await resp.json();
+    // Rate-limited or overloaded — wait and retry
+    if((resp.status===429||resp.status===529)&&attempt<RETRIES-1){
+      await new Promise(r=>setTimeout(r,(attempt+1)*20000));
+      continue;
+    }
+    if(!resp.ok) throw new Error(`HTTP ${resp.status}: ${data.error?.message||JSON.stringify(data)}`);
+    if(data.error) throw new Error(data.error.message);
+    return data.content[0].text;
+  }
 }
 
 /* ─── LOGO ─── */
@@ -517,18 +525,27 @@ The group has produced their own analysis. Search for current information about:
 Then produce your own independent expert three-stage analysis as instructed. Be specific, cite real examples, and provide constructive observations that enrich the group's thinking.`;
 
     try{
-      const resp=await fetch('https://api.anthropic.com/v1/messages',{
-        method:'POST',
-        headers:{'content-type':'application/json','x-api-key':_apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-        body:JSON.stringify({
-          model:'claude-sonnet-4-6',
-          max_tokens:2000,
-          system:sysPrompt,
-          tools:[{"type":"web_search_20250305","name":"web_search"}],
-          messages:[{role:'user',content:prompt}]
-        })
-      });
-      const data=await resp.json();
+      let data,resp;
+      const RETRIES=3;
+      for(let attempt=0;attempt<RETRIES;attempt++){
+        resp=await fetch('https://api.anthropic.com/v1/messages',{
+          method:'POST',
+          headers:{'content-type':'application/json','x-api-key':_apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+          body:JSON.stringify({
+            model:'claude-sonnet-4-6',
+            max_tokens:1500,
+            system:sysPrompt,
+            tools:[{"type":"web_search_20250305","name":"web_search"}],
+            messages:[{role:'user',content:prompt}]
+          })
+        });
+        data=await resp.json();
+        if((resp.status===429||resp.status===529)&&attempt<RETRIES-1){
+          await new Promise(r=>setTimeout(r,(attempt+1)*20000));
+          continue;
+        }
+        break;
+      }
       if(!resp.ok) throw new Error(`HTTP ${resp.status}: ${data.error?.message||JSON.stringify(data)}`);
       // Extract all text blocks (web search may produce multiple content blocks)
       const text=data.content.filter(b=>b.type==='text').map(b=>b.text).join('\n\n');
@@ -641,16 +658,17 @@ function CFOReport({st, onClose, onHtmlReady}){
     setGenState('loading');
     const system=`You are a senior management consultant writing a formal CFO-ready executive memo for an executive education group presenting a sustainability strategy opportunity. Write in a crisp, precise, investment-grade style. Structured prose — not bullet lists for the main narrative. Format output as clean HTML using only: <h3>, <p>, <ul>, <li>, <strong>, <table>, <tr>, <th>, <td>, and one class="highlight-box" div for the executive summary. No markdown, no preamble, no sign-off — output inner HTML only starting with content directly.`;
 
-    const sthText=activeSth.map(t=>{const tp=STYPES.find(x=>x.id===t.id);return`${tp.label}: Who: ${t.who||'—'} | Pressure: ${t.pressure||'—'} | Impact: ${t.impact||'—'} | Opportunity: ${t.opp||'—'}`;}).join('\n');
+    const cap=(s,n)=>(s||'—').slice(0,n);
+    const sthText=activeSth.map(t=>{const tp=STYPES.find(x=>x.id===t.id);return`${tp.label}: Who: ${cap(t.who,120)} | Pressure: ${cap(t.pressure,120)} | Impact: ${cap(t.impact,120)} | Opportunity: ${cap(t.opp,120)}`;}).join('\n');
     const valText=lines.map(l=>{const tp=STYPES.find(t=>t.id===l.id);return`${tp.label}: ${l.blabel||l.opp?.slice(0,50)||'benefit'} — ${fmt(l.ann,st.curr)}/year → NPV @5yr: ${fmt(l.ann*af(st.rate,5),st.curr)}, @10yr: ${fmt(l.ann*af(st.rate,10),st.curr)}`;}).join('\n');
 
     // Build coaching digest from saved chat history
     const digest=coachingDigest(st.chats||{});
     const digestSection=digest?`\nAI COACHING INSIGHTS FROM DIALOGUE (incorporate refined thinking from these exchanges into the report where relevant):\n${digest}\n`:'';
 
-    const prompt=`Generate a professional CFO-ready executive memo.\n\nGROUP: ${st.grp.name||'Executive Team'} | Industry: ${st.grp.industry||'Not specified'}\nCHALLENGE: ${st.fish.name||'Sustainability Challenge'}\n${(st.fish.desc||'').slice(0,600)}\n\nSTAKEHOLDER ANALYSIS:\n${sthText||'Not completed.'}\n\nSTRATEGIC LEVER: ${linfo?.label||'Not selected'}\n${(st.lever==='wtp'||st.lever==='mkt'||st.lever==='combo')?`Market segment: ${st.mseg||'—'}\n`:''}Strategic path: ${st.ldetail||'—'}\n\nNPV+ MODEL (WACC: ${st.rate}%):\nCAPEX: ${cap>0?fmt(-cap,st.curr):'None'}\n${valText||'No benefit lines.'}\nAnnual benefit: ${fmt(totAnn,st.curr)} | NPV@5yr: ${fmt(npv5,st.curr)} | NPV@10yr: ${fmt(npv10,st.curr)}\nCFO Pitch: ${st.pitch||'—'}\n${digestSection}\nStructure the memo: (1) Executive summary highlight-box with recommendation and NPV headline. (2) Why this challenge is strategically material now — weave in any refined framing from the coaching dialogue. (3) Stakeholder landscape incorporating any gaps or challenges surfaced during coaching. (4) Strategic recommendation with competitive logic. (5) Financial case — NPV+ waterfall narrative, key assumptions stress-tested through coaching dialogue. (6) Key risks and mitigants, including any specifically raised during the coaching. (7) Next steps with suggested owners.\n\nDate: ${new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}`;
+    const prompt=`Generate a professional CFO-ready executive memo.\n\nGROUP: ${st.grp.name||'Executive Team'} | Industry: ${st.grp.industry||'Not specified'}\nCHALLENGE: ${st.fish.name||'Sustainability Challenge'}\n${(st.fish.desc||'').slice(0,600)}\n\nSTAKEHOLDER ANALYSIS:\n${sthText||'Not completed.'}\n\nSTRATEGIC LEVER: ${linfo?.label||'Not selected'}\n${(st.lever==='wtp'||st.lever==='mkt'||st.lever==='combo')?`Market segment: ${st.mseg||'—'}\n`:''}Strategic path: ${cap(st.ldetail,400)}\n\nNPV+ MODEL (WACC: ${st.rate}%):\nCAPEX: ${cap>0?fmt(-cap,st.curr):'None'}\n${valText||'No benefit lines.'}\nAnnual benefit: ${fmt(totAnn,st.curr)} | NPV@5yr: ${fmt(npv5,st.curr)} | NPV@10yr: ${fmt(npv10,st.curr)}\nCFO Pitch: ${cap(st.pitch,300)}\n${digestSection}\nStructure the memo: (1) Executive summary highlight-box with recommendation and NPV headline. (2) Why this challenge is strategically material now — weave in any refined framing from the coaching dialogue. (3) Stakeholder landscape incorporating any gaps or challenges surfaced during coaching. (4) Strategic recommendation with competitive logic. (5) Financial case — NPV+ waterfall narrative, key assumptions stress-tested through coaching dialogue. (6) Key risks and mitigants, including any specifically raised during the coaching. (7) Next steps with suggested owners.\n\nDate: ${new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}`;
 
-    callClaude(system,[{role:'user',content:prompt}],1500)
+    callClaude(system,[{role:'user',content:prompt}],1200)
       .then(text=>{setHtml(text);setGenState('done');if(onHtmlReady)onHtmlReady(text);})
       .catch(e=>{setError(e.message);setGenState('error');});
   };
