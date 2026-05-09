@@ -312,6 +312,9 @@ app.post('/api/submit', requireLogin, async (req, res) => {
        d.npv5||0, d.npv10||0, d.rate||0,
        d.currency||'EUR', d.reportHtml||'']);
 
+    // Delete draft now that work is submitted
+    await pool.query('DELETE FROM drafts WHERE user_id=$1', [u.id]);
+
     res.json({ success: true });
 
     // Send email in background — don't let email failure block the submission
