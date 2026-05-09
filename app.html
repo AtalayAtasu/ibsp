@@ -471,9 +471,13 @@ function coachingDigest(chats){
   const extract=(msgs,label)=>{
     const aiMsgs=msgs.filter((m,i)=>m.role==='assistant'&&i>0);
     if(!aiMsgs.length) return '';
-    return `\n--- AI Coaching: ${label} ---\n`+aiMsgs.map(m=>m.content).join('\n\n');
+    // Keep only the last AI message per stage to stay within token limits
+    const last=aiMsgs[aiMsgs.length-1].content.slice(0,800);
+    return `\n--- AI Coaching: ${label} ---\n${last}`;
   };
-  return [extract(chats.q1||[],'Stakeholder Analysis'), extract(chats.q2||[],'Strategic Levers'), extract(chats.q3||[],'NPV+ Valuation')].filter(Boolean).join('\n');
+  const full=[extract(chats.q1||[],'Stakeholder Analysis'), extract(chats.q2||[],'Strategic Levers'), extract(chats.q3||[],'NPV+ Valuation')].filter(Boolean).join('\n');
+  // Hard cap at 2400 chars total
+  return full.slice(0,2400);
 }
 
 /* ─── AI CONSULTANT ─── */
@@ -644,9 +648,9 @@ function CFOReport({st, onClose, onHtmlReady}){
     const digest=coachingDigest(st.chats||{});
     const digestSection=digest?`\nAI COACHING INSIGHTS FROM DIALOGUE (incorporate refined thinking from these exchanges into the report where relevant):\n${digest}\n`:'';
 
-    const prompt=`Generate a professional CFO-ready executive memo.\n\nGROUP: ${st.grp.name||'Executive Team'} | Industry: ${st.grp.industry||'Not specified'}\nCHALLENGE: ${st.fish.name||'Sustainability Challenge'}\n${st.fish.desc}\n\nSTAKEHOLDER ANALYSIS:\n${sthText||'Not completed.'}\n\nSTRATEGIC LEVER: ${linfo?.label||'Not selected'}\n${(st.lever==='wtp'||st.lever==='mkt'||st.lever==='combo')?`Market segment: ${st.mseg||'—'}\n`:''}Strategic path: ${st.ldetail||'—'}\n\nNPV+ MODEL (WACC: ${st.rate}%):\nCAPEX: ${cap>0?fmt(-cap,st.curr):'None'}\n${valText||'No benefit lines.'}\nAnnual benefit: ${fmt(totAnn,st.curr)} | NPV@5yr: ${fmt(npv5,st.curr)} | NPV@10yr: ${fmt(npv10,st.curr)}\nCFO Pitch: ${st.pitch||'—'}\n${digestSection}\nStructure the memo: (1) Executive summary highlight-box with recommendation and NPV headline. (2) Why this challenge is strategically material now — weave in any refined framing from the coaching dialogue. (3) Stakeholder landscape incorporating any gaps or challenges surfaced during coaching. (4) Strategic recommendation with competitive logic. (5) Financial case — NPV+ waterfall narrative, key assumptions stress-tested through coaching dialogue. (6) Key risks and mitigants, including any specifically raised during the coaching. (7) Next steps with suggested owners.\n\nDate: ${new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}`;
+    const prompt=`Generate a professional CFO-ready executive memo.\n\nGROUP: ${st.grp.name||'Executive Team'} | Industry: ${st.grp.industry||'Not specified'}\nCHALLENGE: ${st.fish.name||'Sustainability Challenge'}\n${(st.fish.desc||'').slice(0,600)}\n\nSTAKEHOLDER ANALYSIS:\n${sthText||'Not completed.'}\n\nSTRATEGIC LEVER: ${linfo?.label||'Not selected'}\n${(st.lever==='wtp'||st.lever==='mkt'||st.lever==='combo')?`Market segment: ${st.mseg||'—'}\n`:''}Strategic path: ${st.ldetail||'—'}\n\nNPV+ MODEL (WACC: ${st.rate}%):\nCAPEX: ${cap>0?fmt(-cap,st.curr):'None'}\n${valText||'No benefit lines.'}\nAnnual benefit: ${fmt(totAnn,st.curr)} | NPV@5yr: ${fmt(npv5,st.curr)} | NPV@10yr: ${fmt(npv10,st.curr)}\nCFO Pitch: ${st.pitch||'—'}\n${digestSection}\nStructure the memo: (1) Executive summary highlight-box with recommendation and NPV headline. (2) Why this challenge is strategically material now — weave in any refined framing from the coaching dialogue. (3) Stakeholder landscape incorporating any gaps or challenges surfaced during coaching. (4) Strategic recommendation with competitive logic. (5) Financial case — NPV+ waterfall narrative, key assumptions stress-tested through coaching dialogue. (6) Key risks and mitigants, including any specifically raised during the coaching. (7) Next steps with suggested owners.\n\nDate: ${new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}`;
 
-    callClaude(system,[{role:'user',content:prompt}],2000)
+    callClaude(system,[{role:'user',content:prompt}],1500)
       .then(text=>{setHtml(text);setGenState('done');if(onHtmlReady)onHtmlReady(text);})
       .catch(e=>{setError(e.message);setGenState('error');});
   };
