@@ -248,6 +248,12 @@ app.post('/admin/users/:id/delete', requireAdmin, async (req, res) => {
   res.redirect('/admin?msg=User+deleted');
 });
 
+// Users — reset progress (clears draft, leaves account + submissions intact)
+app.post('/admin/users/:id/reset', requireAdmin, async (req, res) => {
+  await pool.query('DELETE FROM drafts WHERE user_id=$1', [req.params.id]);
+  res.redirect('/admin?msg=User+progress+reset');
+});
+
 // Submissions — view report
 app.get('/admin/submissions/:id/report', requireAdmin, async (req, res) => {
   const r = await pool.query(
@@ -832,9 +838,13 @@ function adminHTML(cohorts, users, submissions, msg) {
       <td>${fmtDt(u.expires_at)}</td>
       <td>${fmtDt(u.last_login)}</td>
       <td>${statusBadge(u.expires_at, u.last_login)}</td>
-      <td>
+      <td style="display:flex;gap:6px;flex-wrap:wrap">
+        <form method="POST" action="/admin/users/${u.id}/reset" style="display:inline"
+              onsubmit="return confirm('Reset progress for ${u.username}? This clears their draft so they start from scratch. Their submitted reports are kept.')">
+          <button type="submit" class="del-btn" style="background:#E67E22;border-color:#E67E22">↺ Reset</button>
+        </form>
         <form method="POST" action="/admin/users/${u.id}/delete" style="display:inline"
-              onsubmit="return confirm('Delete user ${u.username}?')">
+              onsubmit="return confirm('Delete user ${u.username}? Their submitted reports will be kept but the account will be removed.')">
           <button type="submit" class="del-btn">Delete</button>
         </form>
       </td>

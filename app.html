@@ -1175,6 +1175,10 @@ function App(){
       if(data.state){
         set(data.state.st||init());
         setStep(data.state.step||0);
+      } else {
+        // Server has no draft (new account, reset, or deleted) — clear stale localStorage
+        set(init());setStep(0);
+        try{localStorage.removeItem(DKEY);}catch(e){}
       }
     }).catch(()=>{});
   },[]);
