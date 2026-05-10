@@ -55,6 +55,13 @@ async function initDB() {
       report_html    TEXT DEFAULT '',
       submitted_at   TIMESTAMPTZ DEFAULT NOW()
     )`);
+  // Add columns introduced after initial deploy (safe to run repeatedly)
+  await pool.query(`ALTER TABLE submissions ADD COLUMN IF NOT EXISTS members        TEXT DEFAULT ''`);
+  await pool.query(`ALTER TABLE submissions ADD COLUMN IF NOT EXISTS lever_detail   TEXT DEFAULT ''`);
+  await pool.query(`ALTER TABLE submissions ADD COLUMN IF NOT EXISTS market_segment TEXT DEFAULT ''`);
+  await pool.query(`ALTER TABLE submissions ADD COLUMN IF NOT EXISTS pitch          TEXT DEFAULT ''`);
+  await pool.query(`ALTER TABLE submissions ADD COLUMN IF NOT EXISTS capex          NUMERIC DEFAULT 0`);
+  await pool.query(`ALTER TABLE submissions ADD COLUMN IF NOT EXISTS consultant_html TEXT DEFAULT ''`);
   await pool.query(`
     CREATE TABLE IF NOT EXISTS drafts (
       user_id    INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
@@ -254,7 +261,7 @@ app.post('/admin/users/:id/reset', requireAdmin, async (req, res) => {
   res.redirect('/admin?msg=User+progress+reset');
 });
 
-// Submissions — view report
+// Submissions — view CFO report only
 app.get('/admin/submissions/:id/report', requireAdmin, async (req, res) => {
   const r = await pool.query(
     'SELECT report_html, username, challenge_name, group_name, industry, cohort_name FROM submissions WHERE id = $1',
@@ -268,6 +275,35 @@ app.get('/admin/submissions/:id/report', requireAdmin, async (req, res) => {
     groupName:     row.group_name,
     industry:      row.industry,
     cohortName:    row.cohort_name
+  }));
+});
+
+// Submissions — view complete submission
+app.get('/admin/submissions/:id/complete', requireAdmin, async (req, res) => {
+  const r = await pool.query('SELECT * FROM submissions WHERE id = $1', [req.params.id]);
+  if (!r.rows[0]) return res.status(404).send('Not found');
+  const row = r.rows[0];
+  res.type('html').send(buildCompleteDoc({
+    reportHtml:      row.report_html,
+    consultantHtml:  row.consultant_html,
+    username:        row.username,
+    challengeName:   row.challenge_name,
+    challengeDesc:   row.challenge_desc,
+    groupName:       row.group_name,
+    members:         row.members,
+    industry:        row.industry,
+    cohortName:      row.cohort_name,
+    lever:           row.lever,
+    leverDetail:     row.lever_detail,
+    marketSegment:   row.market_segment,
+    stakeholders:    row.stakeholders,
+    benefitLines:    row.benefit_lines,
+    npv5:            row.npv5,
+    npv10:           row.npv10,
+    capex:           row.capex,
+    rate:            row.rate,
+    currency:        row.currency,
+    pitch:           row.pitch
   }));
 });
 
@@ -323,17 +359,20 @@ app.post('/api/submit', requireLogin, async (req, res) => {
   try {
     await pool.query(`
       INSERT INTO submissions
-        (user_id, username, cohort_name, group_name, industry,
-         challenge_name, challenge_desc, lever, stakeholders,
-         benefit_lines, npv5, npv10, rate, currency, report_html)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)`,
+        (user_id, username, cohort_name, group_name, members, industry,
+         challenge_name, challenge_desc, lever, lever_detail, market_segment,
+         stakeholders, benefit_lines, npv5, npv10, capex, rate, currency,
+         pitch, consultant_html, report_html)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21)`,
       [u.id, u.username, u.cohortName,
-       d.groupName||'', d.industry||'', d.challengeName||'',
-       d.challengeDesc||'', d.lever||'',
+       d.groupName||'', d.members||'', d.industry||'',
+       d.challengeName||'', d.challengeDesc||'',
+       d.lever||'', d.leverDetail||'', d.marketSegment||'',
        JSON.stringify(d.stakeholders||[]),
        JSON.stringify(d.benefitLines||[]),
-       d.npv5||0, d.npv10||0, d.rate||0,
-       d.currency||'EUR', d.reportHtml||'']);
+       d.npv5||0, d.npv10||0, d.capex||0, d.rate||0,
+       d.currency||'EUR', d.pitch||'',
+       d.consultantHtml||'', d.reportHtml||'']);
 
     // Delete draft now that work is submitted
     await pool.query('DELETE FROM drafts WHERE user_id=$1', [u.id]);
@@ -857,8 +896,9 @@ function adminHTML(cohorts, users, submissions, msg) {
       <td>${s.group_name || '—'}</td>
       <td>${s.challenge_name || '—'}</td>
       <td>${fmtDt(s.submitted_at)}</td>
-      <td style="display:flex;gap:0.5rem;align-items:center">
-        <a href="/admin/submissions/${s.id}/report" target="_blank" class="view-link">View →</a>
+      <td style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap">
+        <a href="/admin/submissions/${s.id}/report" target="_blank" class="view-link">CFO Report →</a>
+        <a href="/admin/submissions/${s.id}/complete" target="_blank" class="view-link" style="background:#E8F5E9;color:#2E7D32;border-color:#A5D6A7">Complete →</a>
         <form method="POST" action="/admin/submissions/${s.id}/delete" style="margin:0" onsubmit="return confirm('Delete this submission? This cannot be undone.')">
           <button type="submit" style="background:none;border:1px solid #e88;color:#c33;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:0.75rem;font-family:inherit">Delete</button>
         </form>
