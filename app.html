@@ -258,7 +258,7 @@ function getApiKey(){ return _apiKey; }
 function setApiKey(k){ _apiKey = k.trim(); }
 
 /* ─── AI CALL (with automatic retry on rate-limit) ─── */
-async function callClaude(system, messages, maxTokens=600, model='claude-haiku-4-5'){
+async function callClaude(system, messages, maxTokens=600, model='claude-sonnet-4-6'){
   if(!_apiKey) throw new Error('NO_KEY');
   const RETRIES=3;
   for(let attempt=0;attempt<RETRIES;attempt++){
@@ -668,7 +668,7 @@ function CFOReport({st, onClose, onHtmlReady}){
 
     const prompt=`Generate a professional CFO-ready executive memo.\n\nGROUP: ${st.grp.name||'Executive Team'} | Industry: ${st.grp.industry||'Not specified'}\nCHALLENGE: ${st.fish.name||'Sustainability Challenge'}\n${(st.fish.desc||'').slice(0,600)}\n\nSTAKEHOLDER ANALYSIS:\n${sthText||'Not completed.'}\n\nSTRATEGIC LEVER: ${linfo?.label||'Not selected'}\n${(st.lever==='wtp'||st.lever==='mkt'||st.lever==='combo')?`Market segment: ${st.mseg||'—'}\n`:''}Strategic path: ${cap(st.ldetail,400)}\n\nNPV+ MODEL (WACC: ${st.rate}%):\nCAPEX: ${cap>0?fmt(-cap,st.curr):'None'}\n${valText||'No benefit lines.'}\nAnnual benefit: ${fmt(totAnn,st.curr)} | NPV@5yr: ${fmt(npv5,st.curr)} | NPV@10yr: ${fmt(npv10,st.curr)}\nCFO Pitch: ${cap(st.pitch,300)}\n${digestSection}\nStructure the memo: (1) Executive summary highlight-box with recommendation and NPV headline. (2) Why this challenge is strategically material now — weave in any refined framing from the coaching dialogue. (3) Stakeholder landscape incorporating any gaps or challenges surfaced during coaching. (4) Strategic recommendation with competitive logic. (5) Financial case — NPV+ waterfall narrative, key assumptions stress-tested through coaching dialogue. (6) Key risks and mitigants, including any specifically raised during the coaching. (7) Next steps with suggested owners.\n\nDate: ${new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}`;
 
-    callClaude(system,[{role:'user',content:prompt}],1200,'claude-sonnet-4-6')
+    callClaude(system,[{role:'user',content:prompt}],3000,'claude-sonnet-4-6')
       .then(text=>{setHtml(text);setGenState('done');if(onHtmlReady)onHtmlReady(text);})
       .catch(e=>{setError(e.message);setGenState('error');});
   };
@@ -834,7 +834,7 @@ function S1({st,set}){
 
   const sysPrompt=`SCOPE GUARDRAIL: This tool is designed exclusively for challenges with a clear environmental, social, or governance (ESG) dimension — such as carbon emissions, resource depletion, biodiversity loss, supply chain ethics, community impact, circular economy, or ESG-driven regulation. If the challenge or question does not have a meaningful ESG dimension, do not engage with the substance. Politely but firmly explain that this tool is scoped to sustainability strategy, and ask the participant to reframe their challenge around its environmental, social, or governance impact before you proceed.
 
-You are a sustainability strategy professor facilitating an executive education session on stakeholder analysis. Review the group's work with intellectual rigor. Challenge vague answers. Identify gaps. Reference real companies (Unilever, BASF, Ørsted, Nestlé, Volkswagen, Patagonia, Apple, etc.) relevant to their industry context. Be concise and executive-level — use numbered points. Limit each response to 200 words.`;
+You are a sustainability strategy professor facilitating an executive education session on stakeholder analysis. Review the group's work with intellectual rigor. Challenge vague answers. Identify gaps. Reference real companies (Unilever, BASF, Ørsted, Nestlé, Volkswagen, Patagonia, Apple, etc.) relevant to their industry context. Be ruthlessly concise: respond with exactly 3 numbered points, each a specific fact-based challenge or observation. No preamble, no sign-off, no general statements. Start directly with point 1. Hard limit: 150 words.`;
 
   const buildPrompt=()=>{
     const actv=st.sth.filter(x=>x.on);
@@ -884,7 +884,7 @@ function S2({st,set}){
 
   const sysPrompt=`SCOPE GUARDRAIL: This tool is designed exclusively for challenges with a clear environmental, social, or governance (ESG) dimension — such as carbon emissions, resource depletion, biodiversity loss, supply chain ethics, community impact, circular economy, or ESG-driven regulation. If the challenge or question does not have a meaningful ESG dimension, do not engage with the substance. Politely but firmly explain that this tool is scoped to sustainability strategy, and ask the participant to reframe their challenge around its environmental, social, or governance impact before you proceed.
 
-You are a sustainability strategy professor reviewing strategic lever choices. Challenge vague lever selections. Test whether the market segment is sufficiently specific. Ask about competitive dynamics and second-order effects. Reference real strategic pivots by companies (e.g. Ørsted from oil to wind, Unilever's Sustainable Living brands, Interface's Mission Zero). Be direct. 200 words max.`;
+You are a sustainability strategy professor reviewing strategic lever choices. Challenge vague lever selections. Test whether the market segment is sufficiently specific. Ask about competitive dynamics and second-order effects. Reference real strategic pivots by companies (e.g. Ørsted from oil to wind, Unilever's Sustainable Living brands, Interface's Mission Zero). Be ruthlessly concise: respond with exactly 3 numbered points, each a specific fact-based challenge or observation. No preamble, no sign-off, no general statements. Start directly with point 1. Hard limit: 150 words.`;
 
   const buildPrompt=()=>{
     const linfo=LEVERS.find(l=>l.id===st.lever);
@@ -943,7 +943,7 @@ function S3({st,set}){
 
   const sysPrompt=`SCOPE GUARDRAIL: This tool is designed exclusively for challenges with a clear environmental, social, or governance (ESG) dimension — such as carbon emissions, resource depletion, biodiversity loss, supply chain ethics, community impact, circular economy, or ESG-driven regulation. If the challenge or question does not have a meaningful ESG dimension, do not engage with the substance. Politely but firmly explain that this tool is scoped to sustainability strategy, and ask the participant to reframe their challenge around its environmental, social, or governance impact before you proceed.
 
-You are a sustainability strategy professor and former investment banker reviewing a group's NPV+ financial model. Challenge assumptions aggressively but constructively. Ask: What is driving that number? What would a skeptical CFO push back on? What is the single biggest assumption risk? Reference a comparable deal or investment case (e.g. Ørsted wind, Plastic Energy, Interface recycled carpets, Renault EV). 200 words max.`;
+You are a sustainability strategy professor and former investment banker reviewing a group's NPV+ financial model. Challenge assumptions aggressively but constructively. Ask: What is driving that number? What would a skeptical CFO push back on? What is the single biggest assumption risk? Reference a comparable deal or investment case (e.g. Ørsted wind, Plastic Energy, Interface recycled carpets, Renault EV). Be ruthlessly concise: respond with exactly 3 numbered points, each a specific fact-based challenge or observation. No preamble, no sign-off, no general statements. Start directly with point 1. Hard limit: 150 words.`;
 
   const buildPrompt=()=>{
     const lines=actv.map(x=>{const tp=STYPES.find(t=>t.id===x.id);return`${tp.label} — ${x.blabel||x.opp?.slice(0,40)||'benefit'}: ${fmt(parseFloat(x.annual)||0,cur)}/year`;}).join('\n');
