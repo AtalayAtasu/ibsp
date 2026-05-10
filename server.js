@@ -368,7 +368,7 @@ const STH_LABELS = {
 };
 
 function fmtMoney(n, cur) {
-  const sym = cur === 'USD' ? '$' : cur === 'GBP' ? '£' : '€';
+  const sym = { USD:'$', GBP:'£', CHF:'CHF ', SGD:'S$', JPY:'¥', CNY:'¥', BRL:'R$', INR:'₹' }[cur] || '€';
   return sym + Number(n || 0).toLocaleString('en', { maximumFractionDigits: 0 });
 }
 
@@ -425,6 +425,173 @@ tr:nth-child(even) td{background:#F3F8FC}
       <span class="doc-footer-brand">© AcpitConsulting · Sustainability Strategy Compass</span>
       <span>${date}</span>
     </div>
+  </div>
+</div>
+</body></html>`;
+}
+
+// Builds the complete summary document matching the S4 Summary & Report page
+function buildCompleteDoc(d) {
+  const date = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+  const esc = s => (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const cur = d.currency || 'EUR';
+  const af = (r, n) => r > 0 ? (1 - Math.pow(1 + r/100, -n)) / (r/100) : n;
+  const capex = parseFloat(d.capex) || 0;
+  const lines = (d.benefitLines || []).map(l => ({ ...l, ann: parseFloat(l.ann) || 0 }));
+  const npv5  = d.npv5  || (-capex + lines.reduce((a,l) => a + l.ann * af(d.rate,5),  0));
+  const npv10 = d.npv10 || (-capex + lines.reduce((a,l) => a + l.ann * af(d.rate,10), 0));
+  const totAnn = lines.reduce((a,l) => a + l.ann, 0);
+
+  const LEVER_LABELS_LOCAL = { cost:'Cost Reduction', wtp:'WTP Creation', mkt:'Market Creation', combo:'Combination' };
+
+  const activeSth = (d.stakeholders || []).filter(s => s.on);
+  const sthRows = activeSth.length
+    ? activeSth.map(s => `
+      <tr>
+        <td>${esc(STH_LABELS[s.id] || s.id)}</td>
+        <td>${esc(s.who)}</td><td>${esc(s.pressure)}</td>
+        <td>${esc(s.impact)}</td><td>${esc(s.opp)}</td>
+      </tr>`).join('')
+    : `<tr><td colspan="5" style="color:#aaa;font-style:italic">No stakeholders entered</td></tr>`;
+
+  const benRows = lines.length
+    ? lines.map(l => `
+      <tr>
+        <td>${esc(l.blabel || l.opp)}</td>
+        <td style="text-align:right;font-weight:600">${fmtMoney(l.ann, cur)}/yr</td>
+        <td style="text-align:right;color:#1B6B3A">${fmtMoney(l.ann * af(d.rate, 5), cur)}</td>
+        <td style="text-align:right;color:#1B6B3A">${fmtMoney(l.ann * af(d.rate, 10), cur)}</td>
+      </tr>`).join('')
+    : `<tr><td colspan="4" style="color:#aaa;font-style:italic">No benefit lines entered</td></tr>`;
+
+  const css = `
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',system-ui,sans-serif;font-size:10.5pt;line-height:1.75;color:#1A1A1A;background:#F0F4F8}
+.page{max-width:900px;margin:2rem auto;background:white;border-radius:12px;overflow:hidden;box-shadow:0 4px 32px rgba(0,42,92,0.12)}
+.cover{background:#002A5C;color:white;padding:2.5rem 3rem 2.2rem}
+.cover-eyebrow{font-size:8pt;font-weight:600;letter-spacing:0.18em;text-transform:uppercase;color:rgba(255,255,255,0.4);margin-bottom:0.5rem}
+.cover-title{font-family:'Playfair Display',Georgia,serif;font-size:20pt;font-weight:700;line-height:1.2;color:#fff;margin-bottom:0.2rem}
+.cover-subtitle{font-family:'Playfair Display',Georgia,serif;font-size:11pt;color:rgba(255,255,255,0.5);font-weight:600;margin-bottom:1rem}
+.cover-rule{height:3px;background:#C9A84C;width:56px;margin:1rem 0 1.1rem;border-radius:2px}
+.cover-meta{font-size:8.5pt;color:rgba(255,255,255,0.55);line-height:2}
+.cover-meta strong{color:rgba(255,255,255,0.85);font-weight:600}
+.body-wrap{padding:0}
+.sec{padding:2rem 3rem;border-bottom:1px solid #E8EFF8}
+.sec:last-child{border-bottom:none}
+.sec-eyebrow{font-size:7.5pt;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#4AABE8;margin-bottom:0.35rem}
+.sec-title{font-family:'Playfair Display',Georgia,serif;font-size:13pt;font-weight:700;color:#002A5C;margin-bottom:1rem}
+.meta-grid{display:grid;grid-template-columns:140px 1fr;gap:0.3rem 1rem;font-size:9.5pt;margin-bottom:1rem}
+.meta-label{color:#999;padding:0.2rem 0}
+.meta-val{color:#1A1A1A;padding:0.2rem 0;font-weight:500}
+.kpi-row{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin:1rem 0}
+.kpi{background:#F0F4F8;border-radius:8px;padding:1rem;text-align:center}
+.kpi-label{font-size:7.5pt;color:#999;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.3rem}
+.kpi-val{font-family:'Playfair Display',Georgia,serif;font-size:14pt;font-weight:700}
+.kpi-val.pos{color:#1B6B3A}.kpi-val.neg{color:#C0392B}
+table{width:100%;border-collapse:collapse;font-size:9pt;margin:0.5rem 0}
+th{background:#002A5C;color:white;padding:0.5rem 0.75rem;text-align:left;font-weight:600;font-size:8pt}
+td{padding:0.45rem 0.75rem;border-bottom:1px solid #E8EFF8}
+tr:nth-child(even) td{background:#F8FAFC}
+.ai-sec{background:#F8FAFC;border-top:2px solid #4AABE8}
+.ai-inner{padding:2rem 3rem}
+.ai-inner h3{font-family:'Playfair Display',Georgia,serif;font-size:11pt;color:#002A5C;margin:1.5rem 0 0.5rem;padding-bottom:0.3rem;border-bottom:1px solid #D5E6F5;font-weight:700}
+.ai-inner h3:first-child{margin-top:0}
+.ai-inner p{margin-bottom:0.75rem;font-size:10pt}
+.ai-inner ul,.ai-inner ol{padding-left:1.4rem;margin-bottom:0.75rem}
+.ai-inner li{margin-bottom:0.28rem}
+.ai-inner strong{color:#002A5C;font-weight:600}
+.ai-inner .highlight-box{background:#EEF6FB;border-left:4px solid #4AABE8;padding:0.9rem 1.1rem;margin:0.5rem 0 1.2rem;border-radius:0 6px 6px 0}
+.doc-footer{padding:1rem 3rem;background:#F8FAFC;border-top:1px solid #D5E6F5;display:flex;justify-content:space-between;align-items:center;font-size:8pt;color:#aaa}
+.doc-footer-brand{color:#002A5C;font-weight:600}
+@media print{body{background:white}.page{box-shadow:none;border-radius:0;margin:0}}`;
+
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
+<title>Complete Submission — ${esc(d.challengeName)}</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>${css}</style></head><body>
+<div class="page">
+
+  <div class="cover">
+    <div class="cover-eyebrow">Sustainability Strategy Compass · Complete Submission</div>
+    <div class="cover-title">${esc(d.challengeName) || 'Sustainability Strategy'}</div>
+    <div class="cover-subtitle">Full Analysis &amp; AI-Generated Reports</div>
+    <div class="cover-rule"></div>
+    <div class="cover-meta">
+      <strong>Group:</strong> ${esc(d.groupName)}${d.members ? ' &nbsp;·&nbsp; ' + esc(d.members) : ''}<br>
+      ${d.industry ? `<strong>Industry:</strong> ${esc(d.industry)}<br>` : ''}
+      <strong>Cohort:</strong> ${esc(d.cohortName)} &nbsp;·&nbsp; <strong>Submitted by:</strong> ${esc(d.username)}<br>
+      <strong>Date:</strong> ${date}
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-eyebrow">Setup</div>
+    <div class="sec-title">Challenge Definition</div>
+    <div class="meta-grid">
+      <span class="meta-label">Industry</span><span class="meta-val">${esc(d.industry) || '—'}</span>
+      <span class="meta-label">Challenge</span><span class="meta-val" style="font-weight:700;color:#002A5C">${esc(d.challengeName) || '—'}</span>
+      <span class="meta-label">Description</span><span class="meta-val" style="line-height:1.6">${esc(d.challengeDesc) || '—'}</span>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-eyebrow">Question 1</div>
+    <div class="sec-title">Stakeholder Analysis</div>
+    <table>
+      <thead><tr><th>Category</th><th>Who</th><th>Pressure</th><th>Business Impact</th><th>Opportunity</th></tr></thead>
+      <tbody>${sthRows}</tbody>
+    </table>
+  </div>
+
+  <div class="sec">
+    <div class="sec-eyebrow">Question 2</div>
+    <div class="sec-title">Strategic Lever</div>
+    <div class="meta-grid">
+      <span class="meta-label">Lever</span><span class="meta-val" style="font-weight:700;color:#002A5C">${esc(LEVER_LABELS_LOCAL[d.lever] || d.lever) || '—'}</span>
+      ${d.marketSegment ? `<span class="meta-label">Target segment</span><span class="meta-val">${esc(d.marketSegment)}</span>` : ''}
+      <span class="meta-label">Strategic path</span><span class="meta-val" style="line-height:1.6">${esc(d.leverDetail) || '—'}</span>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-eyebrow">Question 3</div>
+    <div class="sec-title">NPV+ Valuation</div>
+    <div class="kpi-row">
+      <div class="kpi"><div class="kpi-label">Annual net benefit</div><div class="kpi-val ${totAnn>=0?'pos':'neg'}">${fmtMoney(totAnn,cur)}</div></div>
+      <div class="kpi"><div class="kpi-label">NPV+ at 5 years</div><div class="kpi-val ${npv5>=0?'pos':'neg'}">${fmtMoney(npv5,cur)}</div></div>
+      <div class="kpi"><div class="kpi-label">NPV+ at 10 years</div><div class="kpi-val ${npv10>=0?'pos':'neg'}">${fmtMoney(npv10,cur)}</div></div>
+    </div>
+    <table>
+      <thead><tr><th>Benefit line</th><th style="text-align:right">Annual</th><th style="text-align:right">NPV 5yr</th><th style="text-align:right">NPV 10yr</th></tr></thead>
+      <tbody>
+        ${capex > 0 ? `<tr><td style="color:#C0392B">CAPEX</td><td style="text-align:right;color:#C0392B;font-weight:600">−${fmtMoney(capex,cur)}</td><td style="text-align:right;color:#C0392B">−${fmtMoney(capex,cur)}</td><td style="text-align:right;color:#C0392B">−${fmtMoney(capex,cur)}</td></tr>` : ''}
+        ${benRows}
+      </tbody>
+    </table>
+    ${d.pitch ? `<div style="margin-top:1rem;padding:0.9rem 1.1rem;background:#EEF6FB;border-left:4px solid #C9A84C;border-radius:0 6px 6px 0"><div style="font-size:7.5pt;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#8B6914;margin-bottom:0.4rem">CFO Pitch</div><div style="font-size:10pt;line-height:1.65">${esc(d.pitch)}</div></div>` : ''}
+  </div>
+
+  ${d.consultantHtml ? `
+  <div class="ai-sec">
+    <div class="ai-inner">
+      <div class="sec-eyebrow" style="padding-top:0.25rem">Strategic Advisor Brief</div>
+      <div class="sec-title">Business Model &amp; Implementation Plan</div>
+      ${d.consultantHtml}
+    </div>
+  </div>` : ''}
+
+  ${d.reportHtml ? `
+  <div class="ai-sec" style="border-top:2px solid #C9A84C">
+    <div class="ai-inner">
+      <div class="sec-eyebrow" style="padding-top:0.25rem;color:#8B6914">AI CFO Report</div>
+      <div class="sec-title">Investment-Grade Executive Memo</div>
+      ${d.reportHtml}
+    </div>
+  </div>` : ''}
+
+  <div class="doc-footer">
+    <span class="doc-footer-brand">© AcpitConsulting · Sustainability Strategy Compass</span>
+    <span>${date}</span>
   </div>
 </div>
 </body></html>`;
@@ -534,12 +701,18 @@ async function sendEmail(d) {
     body: JSON.stringify({
       from:    'SustComp <onboarding@resend.dev>',
       to:      ['atalay.atasu@googlemail.com'],
-      subject: `[SustComp] ${d.cohortName || 'No cohort'} — ${d.username} — ${d.challengeName || 'Submission'}`,
+      subject: `[SustComp] ${d.cohortName || 'No cohort'} — ${d.groupName || d.username} — ${d.challengeName || 'Submission'}`,
       html:    body,
-      attachments: [{
-        filename: `sustcomp-${d.username}-${Date.now()}.html`,
-        content:  Buffer.from(buildReportDoc(d)).toString('base64')
-      }]
+      attachments: [
+        {
+          filename: `cfo-report-${d.username}-${Date.now()}.html`,
+          content:  Buffer.from(buildReportDoc(d)).toString('base64')
+        },
+        {
+          filename: `complete-submission-${d.username}-${Date.now()}.html`,
+          content:  Buffer.from(buildCompleteDoc(d)).toString('base64')
+        }
+      ]
     })
   });
   if (!res.ok) {
