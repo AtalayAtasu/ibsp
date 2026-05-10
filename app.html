@@ -442,7 +442,9 @@ Q2 STRATEGIC LEVERS: Recommend the best strategic lever (Cost Reduction, WTP Cre
 
 Q3 NPV+ PERSPECTIVE: Provide a qualitative NPV+ assessment — which stakeholder benefit streams are most material, what the realistic order of magnitude of value is, and what the critical assumptions are for a positive business case. Reference real deals or investments where possible.
 
-Use web search to gather current, relevant information about the industry, regulation, and comparable cases. Be direct, specific, and evidence-based. Structure your response with clear section headers: ## Q1: Stakeholder Analysis, ## Q2: Strategic Lever Recommendation, ## Q3: NPV+ Perspective. Use **bold** for key points. Be constructive — this is meant to complement and enrich the group's own analysis.`;
+Use web search to gather current, relevant information about the industry, regulation, and comparable cases. Be direct, specific, and evidence-based. Structure your response with clear section headers: ## Q1: Stakeholder Analysis, ## Q2: Strategic Lever Recommendation, ## Q3: NPV+ Perspective. Use **bold** for key points. Be constructive — this is meant to complement and enrich the group's own analysis.
+
+CRITICAL OUTPUT DISCIPLINE: You have a hard token budget. All three sections are equally important. Write each section concisely — 3–5 focused sentences or bullet points maximum per section. Do NOT elaborate extensively on any single section at the expense of completing the others. It is far better to be concise and complete all three sections than to be thorough on Q1 and run out of space before Q3. Every response must end with a complete Q3 section.`;
 
     const prompt=`Research and analyse this sustainability challenge:
 
@@ -551,7 +553,9 @@ function CFOReport({st, initialHtml, onHtmlChange}){
 
   const runGenerate=()=>{
     setGenState('loading');
-    const system=`You are a senior management consultant writing a formal CFO-ready executive memo for an executive education group presenting a sustainability strategy opportunity. Write in a crisp, precise, investment-grade style. Structured prose — not bullet lists for the main narrative. Format output as clean HTML using only: <h3>, <p>, <ul>, <li>, <strong>, <table>, <tr>, <th>, <td>, and one class="highlight-box" div for the executive summary. No markdown, no preamble, no sign-off — output inner HTML only starting with content directly.`;
+    const system=`You are a senior management consultant writing a formal CFO-ready executive memo for an executive education group presenting a sustainability strategy opportunity. Write in a crisp, precise, investment-grade style. Structured prose — not bullet lists for the main narrative. Format output as clean HTML using only: <h3>, <p>, <ul>, <li>, <strong>, <table>, <tr>, <th>, <td>, and one class="highlight-box" div for the executive summary. No markdown, no preamble, no sign-off — output inner HTML only starting with content directly.
+
+CRITICAL OUTPUT DISCIPLINE: You have a hard token budget. All seven sections must be present and complete. Write each section tightly — 2–4 sentences of prose or a short table. Do NOT expand any single section at the expense of later ones. Pace yourself evenly from the start. It is far better to be concise and deliver all seven sections than to be detailed in sections 1–3 and leave sections 4–7 incomplete or missing. The memo must always end with a complete "Next Steps" section.`;
 
     const cap=(s,n)=>(s||'—').slice(0,n);
     const sthText=activeSth.map(t=>{const tp=STYPES.find(x=>x.id===t.id);return`${tp.label}: Who: ${cap(t.who,120)} | Pressure: ${cap(t.pressure,120)} | Impact: ${cap(t.impact,120)} | Opportunity: ${cap(t.opp,120)}`;}).join('\n');
@@ -561,7 +565,15 @@ function CFOReport({st, initialHtml, onHtmlChange}){
     const digest=coachingDigest(st.chats||{});
     const digestSection=digest?`\nAI COACHING INSIGHTS FROM DIALOGUE (incorporate refined thinking from these exchanges into the report where relevant):\n${digest}\n`:'';
 
-    const prompt=`Generate a professional CFO-ready executive memo.\n\nGROUP: ${st.grp.name||'Executive Team'} | Industry: ${st.grp.industry||'Not specified'}\nCHALLENGE: ${st.fish.name||'Sustainability Challenge'}\n${(st.fish.desc||'').slice(0,600)}\n\nSTAKEHOLDER ANALYSIS:\n${sthText||'Not completed.'}\n\nSTRATEGIC LEVER: ${linfo?.label||'Not selected'}\n${(st.lever==='wtp'||st.lever==='mkt'||st.lever==='combo')?`Market segment: ${st.mseg||'—'}\n`:''}Strategic path: ${cap(st.ldetail,400)}\n\nNPV+ MODEL (WACC: ${st.rate}%):\nCAPEX: ${cap>0?fmt(-cap,st.curr):'None'}\n${valText||'No benefit lines.'}\nAnnual benefit: ${fmt(totAnn,st.curr)} | NPV@5yr: ${fmt(npv5,st.curr)} | NPV@10yr: ${fmt(npv10,st.curr)}\nCFO Pitch: ${cap(st.pitch,300)}\n${digestSection}\nStructure the memo: (1) Executive summary highlight-box with recommendation and NPV headline. (2) Why this challenge is strategically material now — weave in any refined framing from the coaching dialogue. (3) Stakeholder landscape incorporating any gaps or challenges surfaced during coaching. (4) Strategic recommendation with competitive logic. (5) Financial case — NPV+ waterfall narrative, key assumptions stress-tested through coaching dialogue. (6) Key risks and mitigants, including any specifically raised during the coaching. (7) Next steps with suggested owners.\n\nDate: ${new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}`;
+    const prompt=`Generate a professional CFO-ready executive memo.\n\nGROUP: ${st.grp.name||'Executive Team'} | Industry: ${st.grp.industry||'Not specified'}\nCHALLENGE: ${st.fish.name||'Sustainability Challenge'}\n${(st.fish.desc||'').slice(0,600)}\n\nSTAKEHOLDER ANALYSIS:\n${sthText||'Not completed.'}\n\nSTRATEGIC LEVER: ${linfo?.label||'Not selected'}\n${(st.lever==='wtp'||st.lever==='mkt'||st.lever==='combo')?`Market segment: ${st.mseg||'—'}\n`:''}Strategic path: ${cap(st.ldetail,400)}\n\nNPV+ MODEL (WACC: ${st.rate}%):\nCAPEX: ${cap>0?fmt(-cap,st.curr):'None'}\n${valText||'No benefit lines.'}\nAnnual benefit: ${fmt(totAnn,st.curr)} | NPV@5yr: ${fmt(npv5,st.curr)} | NPV@10yr: ${fmt(npv10,st.curr)}\nCFO Pitch: ${cap(st.pitch,300)}\n${digestSection}\nStructure the memo with exactly these seven sections, each tight and complete — 2–4 sentences or a short table per section:
+(1) Executive summary highlight-box: one-paragraph recommendation + NPV headline numbers.
+(2) Strategic materiality: why this challenge is urgent now (2–3 sentences, weave in coaching framing).
+(3) Stakeholder landscape: one sentence per relevant stakeholder group, note any coaching-surfaced gaps.
+(4) Strategic recommendation: the chosen lever, target segment if applicable, competitive logic (3 sentences max).
+(5) Financial case: NPV+ waterfall table then 2 sentences on key assumptions.
+(6) Risks and mitigants: 3 bullet points maximum.
+(7) Next steps: 3 bullet points with suggested owners.
+Complete all seven sections. Do not elaborate beyond the limits above.\n\nDate: ${new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}`;
 
     callClaude(system,[{role:'user',content:prompt}],3500,'claude-sonnet-4-6')
       .then(text=>{setHtml(text);setGenState('done');if(onHtmlChange)onHtmlChange(text);})
