@@ -468,31 +468,59 @@ function AIConsultant({st, initialReport, onReportChange, regenUsed, onRegenUsed
   const [state,setState]=useState(initialReport?'done':'idle');
   const [report,setReport]=useState(initialReport||'');
   const [error,setError]=useState('');
-  const [activeTab,setActiveTab]=useState('q1');
 
   const generate=async()=>{
     setState('loading');
-    const sysPrompt=`SCOPE GUARDRAIL: This tool is designed exclusively for challenges with a clear environmental, social, or governance (ESG) dimension — such as carbon emissions, resource depletion, biodiversity loss, supply chain ethics, community impact, circular economy, or ESG-driven regulation. If the challenge presented does not have a meaningful ESG dimension, do not engage with the strategic analysis. Instead, politely but firmly explain that this tool is scoped to sustainability strategy, and ask the participant to reframe their challenge around its environmental, social, or governance impact before you proceed.
 
-You are a senior sustainability strategy consultant with deep knowledge of business strategy, ESG, and industry dynamics. You have access to web search to research real-world context. Your task is to produce your own independent expert assessment of a sustainability challenge — structured as a three-stage analysis following this framework:
+    const sysPrompt=`SCOPE GUARDRAIL: This tool is scoped exclusively to challenges with a meaningful ESG dimension (carbon, resource use, biodiversity, supply chain ethics, community impact, circular economy, ESG regulation). If the challenge lacks a genuine sustainability angle, politely decline and ask the group to reframe it.
 
-Q1 STAKEHOLDER ANALYSIS: Identify the four stakeholder categories (Nature & Society, Business Ecosystem, Regulators, Financial Institutions & Investors) that are materially relevant for this challenge and industry. For each: who specifically, what the pressure is, business impact, and where the opportunity lies.
+You are a senior strategy advisor — part McKinsey partner, part impact investor — helping an executive education group turn their sustainability analysis into a concrete business plan. You have access to web search to ground your advice in real market context.
 
-Q2 STRATEGIC LEVERS: Recommend the best strategic lever (Cost Reduction, WTP Creation, Market Creation, or Combination). Specify the target market segment if relevant. Explain the strategic path with reference to real companies that have pursued this successfully.
+Your task is to produce a STRATEGIC ADVISOR BRIEF: four tight sections that build on what the group has already done and tell them what to do next. Do NOT re-examine or critique their analysis — take it as given and move forward from it.
 
-Q3 NPV+ PERSPECTIVE: Provide a qualitative NPV+ assessment — which stakeholder benefit streams are most material, what the realistic order of magnitude of value is, and what the critical assumptions are for a positive business case. Reference real deals or investments where possible.
+The four sections (use exactly these markdown headers):
+## The Opportunity Reframe
+In 2–3 sentences: sharpen or reframe the opportunity using current market intelligence. What is the real prize here that the group may not have fully articulated? Use web search to ground this in a specific regulatory, competitive, or market trend that is live right now.
 
-Use web search to gather current, relevant information about the industry, regulation, and comparable cases. Be direct, specific, and evidence-based. Structure your response with clear section headers: ## Q1: Stakeholder Analysis, ## Q2: Strategic Lever Recommendation, ## Q3: NPV+ Perspective. Use **bold** for key points. Be constructive — this is meant to complement and enrich the group's own analysis.
+## Business Model Fit
+In 3–4 sentences: recommend the most appropriate business model archetype for monetising their chosen strategic lever (e.g. product-as-a-service, circular supply model, ecosystem platform, B2B licensing, green premium brand). Name one real company that has successfully used this model for a comparable challenge and what it achieved.
 
-CRITICAL OUTPUT DISCIPLINE: You have a hard token budget. All three sections are equally important. Write each section concisely — 3–5 focused sentences or bullet points maximum per section. Do NOT elaborate extensively on any single section at the expense of completing the others. It is far better to be concise and complete all three sections than to be thorough on Q1 and run out of space before Q3. Every response must end with a complete Q3 section.`;
+## Implementation Path
+Three phases — write exactly one sentence per phase:
+- **Year 0–1 (Pilot):** the single most important first move to prove the concept with minimal capital at risk.
+- **Year 1–3 (Build):** the key capability, partnership, or infrastructure to build to reach the NPV+ break-even.
+- **Year 3+ (Scale):** the condition or trigger that unlocks full market opportunity.
 
-    const prompt=`Research and analyse this sustainability challenge:
+## Make-or-Break Factor
+Exactly one sentence: the single most critical assumption or dependency that determines whether this business case holds. Be specific — name the variable, not a category.
+
+OUTPUT DISCIPLINE: Write all four sections. Keep every section within the word limits above. Do not add preamble, caveats, or sign-off. Start directly with ## The Opportunity Reframe.`;
+
+    const linfo=LEVERS.find(l=>l.id===st.lever);
+    const cap=parseFloat(st.capex)||0;
+    const lines=st.sth.filter(x=>x.on).map(s=>({...s,ann:parseFloat(s.annual)||0}));
+    const npv5=-cap+lines.reduce((a,x)=>a+x.ann*af(st.rate,5),0);
+    const npv10=-cap+lines.reduce((a,x)=>a+x.ann*af(st.rate,10),0);
+    const sthText=lines.map(s=>{const tp=STYPES.find(x=>x.id===s.id);return`${tp.label}: ${(s.opp||'').slice(0,100)}`;}).join(' | ');
+    const digest=coachingDigest(st.chats||{});
+
+    const prompt=`Produce a Strategic Advisor Brief for this group.
 
 COMPANY/GROUP: ${st.grp.name||'Executive team'} | Industry: ${st.grp.industry||'not specified'}
-CHALLENGE: ${st.fish.name||'sustainability challenge'}
-${st.fish.desc||''}
+SUSTAINABILITY CHALLENGE: ${st.fish.name||'—'}
+${(st.fish.desc||'').slice(0,400)}
 
-Search for current information about regulatory trends, leading company responses, and real investment cases for this challenge and industry. Then produce your independent expert three-stage analysis. Be specific, cite real examples, and provide constructive observations that enrich the group's thinking.`;
+STRATEGIC LEVER CHOSEN: ${linfo?.label||'Not selected'}
+${st.mseg?`Target segment: ${st.mseg}`:''}
+Strategic path: ${(st.ldetail||'').slice(0,300)}
+
+KEY STAKEHOLDER OPPORTUNITIES: ${sthText||'Not completed'}
+
+FINANCIAL MODEL (WACC ${st.rate}%): CAPEX ${cap>0?fmt(-cap,st.curr):'none'} | NPV@5yr: ${fmt(npv5,st.curr)} | NPV@10yr: ${fmt(npv10,st.curr)}
+CFO pitch: ${(st.pitch||'').slice(0,200)}
+${digest?`\nAI COACHING INSIGHTS:\n${digest}`:''}
+
+Use web search to find current market context, then write the four-section Strategic Advisor Brief.`;
 
     try{
       let data,resp;
@@ -501,7 +529,7 @@ Search for current information about regulatory trends, leading company response
         resp=await fetch('https://api.anthropic.com/v1/messages',{
           method:'POST',
           headers:{'content-type':'application/json','x-api-key':_apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-          body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:2000,system:sysPrompt,tools:[{"type":"web_search_20250305","name":"web_search"}],messages:[{role:'user',content:prompt}]})
+          body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1200,system:sysPrompt,tools:[{"type":"web_search_20250305","name":"web_search"}],messages:[{role:'user',content:prompt}]})
         });
         data=await resp.json();
         if((resp.status===429||resp.status===529)&&attempt<RETRIES-1){await new Promise(r=>setTimeout(r,(attempt+1)*20000));continue;}
@@ -515,26 +543,12 @@ Search for current information about regulatory trends, leading company response
     }catch(e){setError(e.message);setState('error');}
   };
 
-  const sections={q1:'',q2:'',q3:''};
-  if(report){
-    const q1m=report.match(/##\s*Q1[^#]*([\s\S]*?)(?=##\s*Q2|$)/i);
-    const q2m=report.match(/##\s*Q2[^#]*([\s\S]*?)(?=##\s*Q3|$)/i);
-    const q3m=report.match(/##\s*Q3[^#]*([\s\S]*?)$/i);
-    if(q1m)sections.q1=q1m[1].trim();
-    if(q2m)sections.q2=q2m[1].trim();
-    if(q3m)sections.q3=q3m[1].trim();
-    if(!sections.q1&&!sections.q2&&!sections.q3)sections.q1=report;
-  }
-
   const renderMd=text=>text.split('\n').map((ln,i)=>{
-    if(/^###\s/.test(ln))return<h4 key={i} style={{fontSize:'0.85rem',fontWeight:700,color:'var(--navy)',margin:'1rem 0 0.3rem'}}>{ln.replace(/^###\s/,'')}</h4>;
-    if(/^##\s/.test(ln))return<h3 key={i} style={{fontSize:'0.9rem',fontWeight:700,color:'var(--blue)',margin:'0.875rem 0 0.3rem'}}>{ln.replace(/^##\s/,'')}</h3>;
-    if(/^[-•]\s/.test(ln))return<li key={i} style={{marginBottom:'0.3rem',color:'#333',lineHeight:1.65}} dangerouslySetInnerHTML={{__html:ln.replace(/^[-•]\s/,'').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')}}/>;
+    if(/^##\s/.test(ln))return<h3 key={i} style={{fontSize:'0.88rem',fontWeight:700,color:'var(--navy)',margin:'1.25rem 0 0.4rem',paddingBottom:'0.25rem',borderBottom:'1px solid var(--border)'}}>{ln.replace(/^##\s/,'')}</h3>;
+    if(/^[-•]\s/.test(ln))return<li key={i} style={{marginBottom:'0.35rem',color:'#333',lineHeight:1.65}} dangerouslySetInnerHTML={{__html:ln.replace(/^[-•]\s/,'').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')}}/>;
     if(ln.trim()==='')return<br key={i}/>;
-    return<p key={i} style={{marginBottom:'0.5rem',color:'#444',lineHeight:1.65}} dangerouslySetInnerHTML={{__html:ln.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')}}/>;
+    return<p key={i} style={{marginBottom:'0.55rem',color:'#444',lineHeight:1.7}} dangerouslySetInnerHTML={{__html:ln.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')}}/>;
   });
-
-  const TABS=[{id:'q1',label:'Q1 · Stakeholders'},{id:'q2',label:'Q2 · Strategy'},{id:'q3',label:'Q3 · NPV+'}];
 
   return(
     <div className="card" style={{marginBottom:'1.5rem',padding:0,overflow:'hidden'}}>
@@ -544,37 +558,32 @@ Search for current information about regulatory trends, leading company response
             <svg width="18" height="18" viewBox="0 0 44 44" fill="none"><circle cx="22" cy="22" r="19.5" stroke="#002A5C" strokeWidth="2.5"/><ellipse cx="22" cy="22" rx="19.5" ry="8" stroke="#002A5C" strokeWidth="1.8"/><line x1="2.5" y1="22" x2="41.5" y2="22" stroke="#002A5C" strokeWidth="1.8"/></svg>
           </div>
           <div>
-            <div style={{fontSize:'0.95rem',fontWeight:600,color:'white',fontFamily:"'Playfair Display',serif"}}>AI Consultant Opinion</div>
-            <div style={{fontSize:'0.72rem',color:'rgba(255,255,255,0.5)',marginTop:2}}>Independent expert analysis with live web research</div>
+            <div style={{fontSize:'0.95rem',fontWeight:600,color:'white',fontFamily:"'Playfair Display',serif"}}>Strategic Advisor Brief</div>
+            <div style={{fontSize:'0.72rem',color:'rgba(255,255,255,0.5)',marginTop:2}}>Business model & implementation plan — powered by live web research</div>
           </div>
         </div>
-        {state==='idle'&&<button className="btn btn-g" style={{fontSize:'0.82rem'}} onClick={generate}>✦ Get Consultant Opinion</button>}
+        {state==='idle'&&<button className="btn btn-g" style={{fontSize:'0.82rem'}} onClick={generate}>✦ Get Advisor Brief</button>}
         {state==='done'&&<div style={{display:'flex',alignItems:'center',gap:'0.5rem'}}>
-          <span style={{fontSize:'0.65rem',background:'rgba(255,255,255,0.15)',color:'rgba(255,255,255,0.7)',padding:'3px 10px',borderRadius:10}}>✓ Analysis complete</span>
+          <span style={{fontSize:'0.65rem',background:'rgba(255,255,255,0.15)',color:'rgba(255,255,255,0.7)',padding:'3px 10px',borderRadius:10}}>✓ Brief complete</span>
           {!regenUsed&&<button className="btn btn-s" style={{fontSize:'0.75rem',padding:'0.25rem 0.75rem'}} onClick={()=>{setState('idle');setReport('');if(onReportChange)onReportChange('');if(onRegenUsed)onRegenUsed();}}>↺ Regenerate</button>}
         </div>}
       </div>
 
       {state==='idle'&&<div style={{padding:'1.25rem 1.75rem',fontSize:'0.85rem',lineHeight:1.6}}>
-        <p style={{color:'#666',marginBottom:'0.75rem'}}>Request an independent expert opinion on your challenge — with live web research on your industry and comparable cases.</p>
+        <p style={{color:'#666',marginBottom:'0.75rem'}}>An independent senior advisor will review your analysis and produce a business model recommendation and implementation roadmap — grounded in live market research.</p>
         <div style={{background:'#FFF8E7',border:'1px solid #F5C842',borderRadius:'var(--r)',padding:'0.65rem 0.9rem',color:'#5A4000',fontSize:'0.8rem'}}>
-          <strong>⚠ Before you generate:</strong> make sure your stakeholder analysis, strategic lever, and NPV+ inputs across steps 1–3 are as complete as possible. You have one opportunity to regenerate this report — save it for genuine revisions, not first attempts.
+          <strong>⚠ Before you generate:</strong> make sure your stakeholder analysis, strategic lever, and NPV+ inputs across steps 1–3 are as complete as possible. You have one opportunity to regenerate — save it for genuine revisions, not first attempts.
         </div>
       </div>}
-      {state==='loading'&&<AIThinking messages={['Searching industry databases…','Researching regulatory landscape…','Finding comparable company cases…','Analysing stakeholder dynamics…','Synthesising expert opinion…','Structuring the three-stage analysis…','Almost there…']}/>}
+      {state==='loading'&&<AIThinking messages={['Searching for market context…','Identifying business model analogues…','Researching comparable implementations…','Mapping the implementation path…','Pinpointing the make-or-break factor…','Finalising the advisor brief…']}/>}
       {state==='error'&&<div style={{padding:'1.25rem 1.75rem',color:'#c33',fontSize:'0.85rem'}}>Error: {error} <button style={{marginLeft:8,background:'none',border:'none',color:'var(--blue)',cursor:'pointer',fontFamily:'inherit',fontSize:'0.85rem',textDecoration:'underline'}} onClick={generate}>Retry</button></div>}
 
       {state==='done'&&<div style={{padding:'1.25rem 1.75rem'}}>
-        <div style={{display:'flex',gap:4,marginBottom:'1.25rem',background:'var(--blue-l)',borderRadius:30,padding:4,width:'fit-content'}}>
-          {TABS.map(t=><button key={t.id} onClick={()=>setActiveTab(t.id)} style={{padding:'0.3rem 1rem',borderRadius:20,border:'none',cursor:'pointer',fontFamily:'inherit',fontSize:'0.78rem',fontWeight:500,background:activeTab===t.id?'var(--navy)':'transparent',color:activeTab===t.id?'white':'var(--navy)',transition:'all 0.15s'}}>{t.label}</button>)}
-        </div>
         <div style={{background:'var(--blue-l)',borderRadius:'var(--r)',padding:'1.25rem 1.5rem',lineHeight:1.7}}>
-          <ul style={{paddingLeft:'1.1rem',margin:0}}>
-            {renderMd(sections[activeTab]||'No content for this section.')}
-          </ul>
+          {renderMd(report)}
         </div>
         <div style={{marginTop:'0.75rem',fontSize:'0.7rem',color:'#bbb'}}>
-          Generated using live web search. Intended as a complement to your group's analysis — always apply your own judgement.
+          Generated using live web research. Intended to complement your group's analysis — always apply your own judgement.
         </div>
       </div>}
     </div>
