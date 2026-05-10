@@ -401,7 +401,7 @@ function AIChat({stageLabel, systemPrompt, buildPrompt, onUpdate, initialMsgs}){
     const initMsg={role:'user',content:prompt};
     syncMsgs([initMsg]);
     try{
-      const text=await callClaude(systemPrompt,[initMsg],400);
+      const text=await callClaude(systemPrompt,[initMsg],800);
       syncMsgs([initMsg,{role:'assistant',content:text}]);
     }catch(e){
       setError('AI error: '+e.message);
@@ -476,25 +476,27 @@ function AIConsultant({st, initialReport, onReportChange, regenUsed, onRegenUsed
 
 You are a senior strategy advisor — part McKinsey partner, part impact investor — helping an executive education group turn their sustainability analysis into a concrete business plan. You have access to web search to ground your advice in real market context.
 
-Your task is to produce a STRATEGIC ADVISOR BRIEF: four tight sections that build on what the group has already done and tell them what to do next. Do NOT re-examine or critique their analysis — take it as given and move forward from it.
+Your task is to produce a STRATEGIC ADVISOR BRIEF: four sections that build on what the group has already done and tell them what to do next. Do NOT re-examine or critique their analysis — take it as given and move forward from it.
 
-The four sections (use exactly these markdown headers):
+Format your output as clean HTML using only: <h3>, <p>, <ul>, <li>, <strong>. No markdown, no preamble, no sign-off — output inner HTML only, starting directly with content.
+
+The four sections (use <h3> for each heading):
 ## The Opportunity Reframe
-In 2–3 sentences: sharpen or reframe the opportunity using current market intelligence. What is the real prize here that the group may not have fully articulated? Use web search to ground this in a specific regulatory, competitive, or market trend that is live right now.
+3–5 sentences: sharpen or reframe the opportunity using current market intelligence. What is the real prize here that the group may not have fully articulated? Ground this in a specific regulatory shift, competitive dynamic, or emerging market trend — cite a real data point or development from your web search.
 
 ## Business Model Fit
-In 3–4 sentences: recommend the most appropriate business model archetype for monetising their chosen strategic lever (e.g. product-as-a-service, circular supply model, ecosystem platform, B2B licensing, green premium brand). Name one real company that has successfully used this model for a comparable challenge and what it achieved.
+4–6 sentences: recommend the most appropriate business model archetype for monetising their chosen strategic lever (e.g. product-as-a-service, circular supply model, ecosystem platform, B2B licensing, green premium brand, outcome-based contract). Explain why this archetype fits the stakeholder and financial dynamics. Name one or two real companies that have used this model for a comparable challenge and what they achieved financially or strategically.
 
 ## Implementation Path
-Three phases — write exactly one sentence per phase:
-- **Year 0–1 (Pilot):** the single most important first move to prove the concept with minimal capital at risk.
-- **Year 1–3 (Build):** the key capability, partnership, or infrastructure to build to reach the NPV+ break-even.
-- **Year 3+ (Scale):** the condition or trigger that unlocks full market opportunity.
+Three phases with 2–3 sentences each:
+- **Year 0–1 (Pilot):** the single most important first move to prove the concept; key partnerships or customers to target; what success looks like at 12 months.
+- **Year 1–3 (Build):** the capabilities, infrastructure, or ecosystem relationships to build; the milestone that signals readiness to scale.
+- **Year 3+ (Scale):** the market or regulatory trigger that unlocks full opportunity; how the business model evolves at scale; realistic revenue or impact ambition.
 
 ## Make-or-Break Factor
-Exactly one sentence: the single most critical assumption or dependency that determines whether this business case holds. Be specific — name the variable, not a category.
+2–3 sentences: the single most critical assumption or dependency — name the specific variable, explain why it is pivotal, and suggest one way to de-risk or test it early.
 
-OUTPUT DISCIPLINE: Write all four sections. Keep every section within the word limits above. Do not add preamble, caveats, or sign-off. Start directly with ## The Opportunity Reframe.`;
+OUTPUT DISCIPLINE: Write all four sections in full. Do not add preamble, caveats, or sign-off. Start directly with ## The Opportunity Reframe.`;
 
     const linfo=LEVERS.find(l=>l.id===st.lever);
     const cap=parseFloat(st.capex)||0;
@@ -529,7 +531,7 @@ Use web search to find current market context, then write the four-section Strat
         resp=await fetch('https://api.anthropic.com/v1/messages',{
           method:'POST',
           headers:{'content-type':'application/json','x-api-key':_apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-          body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1200,system:sysPrompt,tools:[{"type":"web_search_20250305","name":"web_search"}],messages:[{role:'user',content:prompt}]})
+          body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:2600,system:sysPrompt,tools:[{"type":"web_search_20250305","name":"web_search"}],messages:[{role:'user',content:prompt}]})
         });
         data=await resp.json();
         if((resp.status===429||resp.status===529)&&attempt<RETRIES-1){await new Promise(r=>setTimeout(r,(attempt+1)*20000));continue;}
@@ -543,12 +545,11 @@ Use web search to find current market context, then write the four-section Strat
     }catch(e){setError(e.message);setState('error');}
   };
 
-  const renderMd=text=>text.split('\n').map((ln,i)=>{
-    if(/^##\s/.test(ln))return<h3 key={i} style={{fontSize:'0.88rem',fontWeight:700,color:'var(--navy)',margin:'1.25rem 0 0.4rem',paddingBottom:'0.25rem',borderBottom:'1px solid var(--border)'}}>{ln.replace(/^##\s/,'')}</h3>;
-    if(/^[-•]\s/.test(ln))return<li key={i} style={{marginBottom:'0.35rem',color:'#333',lineHeight:1.65}} dangerouslySetInnerHTML={{__html:ln.replace(/^[-•]\s/,'').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')}}/>;
-    if(ln.trim()==='')return<br key={i}/>;
-    return<p key={i} style={{marginBottom:'0.55rem',color:'#444',lineHeight:1.7}} dangerouslySetInnerHTML={{__html:ln.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')}}/>;
-  });
+  // strips any accidental markdown in case model mixes formats
+  const toHtml=text=>text
+    .replace(/^##\s+(.*)$/gm,'<h3>$1</h3>')
+    .replace(/^[-•]\s+(.*)$/gm,'<li>$1</li>')
+    .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>');
 
   return(
     <div className="card" style={{marginBottom:'1.5rem',padding:0,overflow:'hidden'}}>
@@ -578,14 +579,12 @@ Use web search to find current market context, then write the four-section Strat
       {state==='loading'&&<AIThinking messages={['Searching for market context…','Identifying business model analogues…','Researching comparable implementations…','Mapping the implementation path…','Pinpointing the make-or-break factor…','Finalising the advisor brief…']}/>}
       {state==='error'&&<div style={{padding:'1.25rem 1.75rem',color:'#c33',fontSize:'0.85rem'}}>Error: {error} <button style={{marginLeft:8,background:'none',border:'none',color:'var(--blue)',cursor:'pointer',fontFamily:'inherit',fontSize:'0.85rem',textDecoration:'underline'}} onClick={generate}>Retry</button></div>}
 
-      {state==='done'&&<div style={{padding:'1.25rem 1.75rem'}}>
-        <div style={{background:'var(--blue-l)',borderRadius:'var(--r)',padding:'1.25rem 1.5rem',lineHeight:1.7}}>
-          {renderMd(report)}
-        </div>
-        <div style={{marginTop:'0.75rem',fontSize:'0.7rem',color:'#bbb'}}>
+      {state==='done'&&<>
+        <div className="report-body" style={{borderTop:'1px solid var(--border)'}} dangerouslySetInnerHTML={{__html:toHtml(report)}}/>
+        <div style={{padding:'0.6rem 1.75rem 1rem',fontSize:'0.7rem',color:'#bbb'}}>
           Generated using live web research. Intended to complement your group's analysis — always apply your own judgement.
         </div>
-      </div>}
+      </>}
     </div>
   );
 }
@@ -628,7 +627,7 @@ CRITICAL OUTPUT DISCIPLINE: You have a hard token budget. All seven sections mus
 (7) Next steps: 3 bullet points with suggested owners.
 Complete all seven sections. Do not elaborate beyond the limits above.\n\nDate: ${new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}`;
 
-    callClaude(system,[{role:'user',content:prompt}],3500,'claude-sonnet-4-6')
+    callClaude(system,[{role:'user',content:prompt}],3000,'claude-sonnet-4-6')
       .then(text=>{setHtml(text);setGenState('done');if(onHtmlChange)onHtmlChange(text);})
       .catch(e=>{setError(e.message);setGenState('error');});
   };
@@ -762,7 +761,7 @@ function S1({st,set}){
 
   const sysPrompt=`SCOPE GUARDRAIL: This tool is designed exclusively for challenges with a clear environmental, social, or governance (ESG) dimension — such as carbon emissions, resource depletion, biodiversity loss, supply chain ethics, community impact, circular economy, or ESG-driven regulation. If the challenge or question does not have a meaningful ESG dimension, do not engage with the substance. Politely but firmly explain that this tool is scoped to sustainability strategy, and ask the participant to reframe their challenge around its environmental, social, or governance impact before you proceed.
 
-You are a sustainability strategy professor facilitating an executive education session on stakeholder analysis. Review the group's work with intellectual rigor. Challenge vague answers. Identify gaps. Reference real companies (Unilever, BASF, Ørsted, Nestlé, Volkswagen, Patagonia, Apple, etc.) relevant to their industry context. Be ruthlessly concise: respond with exactly 3 numbered points, each a specific fact-based challenge or observation. No preamble, no sign-off, no general statements. Start directly with point 1. Hard limit: 150 words.`;
+You are a sustainability strategy professor facilitating an executive education session on stakeholder analysis. Review the group's work with intellectual rigor. Challenge vague answers. Identify gaps. Reference real companies (Unilever, BASF, Ørsted, Nestlé, Volkswagen, Patagonia, Apple, etc.) relevant to their industry context. Respond with exactly 5 numbered points, each a specific fact-based challenge or observation. No preamble, no sign-off, no general statements. Start directly with point 1. Hard limit: 300 words.`;
 
   const buildPrompt=()=>{
     const actv=st.sth.filter(x=>x.on);
@@ -812,7 +811,7 @@ function S2({st,set}){
 
   const sysPrompt=`SCOPE GUARDRAIL: This tool is designed exclusively for challenges with a clear environmental, social, or governance (ESG) dimension — such as carbon emissions, resource depletion, biodiversity loss, supply chain ethics, community impact, circular economy, or ESG-driven regulation. If the challenge or question does not have a meaningful ESG dimension, do not engage with the substance. Politely but firmly explain that this tool is scoped to sustainability strategy, and ask the participant to reframe their challenge around its environmental, social, or governance impact before you proceed.
 
-You are a sustainability strategy professor reviewing strategic lever choices. Challenge vague lever selections. Test whether the market segment is sufficiently specific. Ask about competitive dynamics and second-order effects. Reference real strategic pivots by companies (e.g. Ørsted from oil to wind, Unilever's Sustainable Living brands, Interface's Mission Zero). Be ruthlessly concise: respond with exactly 3 numbered points, each a specific fact-based challenge or observation. No preamble, no sign-off, no general statements. Start directly with point 1. Hard limit: 150 words.`;
+You are a sustainability strategy professor reviewing strategic lever choices. Challenge vague lever selections. Test whether the market segment is sufficiently specific. Ask about competitive dynamics and second-order effects. Reference real strategic pivots by companies (e.g. Ørsted from oil to wind, Unilever's Sustainable Living brands, Interface's Mission Zero). Respond with exactly 5 numbered points, each a specific fact-based challenge or observation. No preamble, no sign-off, no general statements. Start directly with point 1. Hard limit: 300 words.`;
 
   const buildPrompt=()=>{
     const linfo=LEVERS.find(l=>l.id===st.lever);
@@ -871,7 +870,7 @@ function S3({st,set}){
 
   const sysPrompt=`SCOPE GUARDRAIL: This tool is designed exclusively for challenges with a clear environmental, social, or governance (ESG) dimension — such as carbon emissions, resource depletion, biodiversity loss, supply chain ethics, community impact, circular economy, or ESG-driven regulation. If the challenge or question does not have a meaningful ESG dimension, do not engage with the substance. Politely but firmly explain that this tool is scoped to sustainability strategy, and ask the participant to reframe their challenge around its environmental, social, or governance impact before you proceed.
 
-You are a sustainability strategy professor and former investment banker reviewing a group's NPV+ financial model. Challenge assumptions aggressively but constructively. Ask: What is driving that number? What would a skeptical CFO push back on? What is the single biggest assumption risk? Reference a comparable deal or investment case (e.g. Ørsted wind, Plastic Energy, Interface recycled carpets, Renault EV). Be ruthlessly concise: respond with exactly 3 numbered points, each a specific fact-based challenge or observation. No preamble, no sign-off, no general statements. Start directly with point 1. Hard limit: 150 words.`;
+You are a sustainability strategy professor and former investment banker reviewing a group's NPV+ financial model. Challenge assumptions aggressively but constructively. Ask: What is driving that number? What would a skeptical CFO push back on? What is the single biggest assumption risk? Reference a comparable deal or investment case (e.g. Ørsted wind, Plastic Energy, Interface recycled carpets, Renault EV). Respond with exactly 5 numbered points, each a specific fact-based challenge or observation. No preamble, no sign-off, no general statements. Start directly with point 1. Hard limit: 300 words.`;
 
   const buildPrompt=()=>{
     const lines=actv.map(x=>{const tp=STYPES.find(t=>t.id===x.id);return`${tp.label} — ${x.blabel||x.opp?.slice(0,40)||'benefit'}: ${fmt(parseFloat(x.annual)||0,cur)}/year`;}).join('\n');
