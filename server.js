@@ -251,10 +251,18 @@ app.post('/admin/users/:id/delete', requireAdmin, async (req, res) => {
 // Submissions — view report
 app.get('/admin/submissions/:id/report', requireAdmin, async (req, res) => {
   const r = await pool.query(
-    'SELECT report_html, username, challenge_name FROM submissions WHERE id = $1',
+    'SELECT report_html, username, challenge_name, group_name, industry, cohort_name FROM submissions WHERE id = $1',
     [req.params.id]);
   if (!r.rows[0]) return res.status(404).send('Not found');
-  res.type('html').send(r.rows[0].report_html || '<p>No report content saved.</p>');
+  const row = r.rows[0];
+  res.type('html').send(buildReportDoc({
+    reportHtml:    row.report_html,
+    username:      row.username,
+    challengeName: row.challenge_name,
+    groupName:     row.group_name,
+    industry:      row.industry,
+    cohortName:    row.cohort_name
+  }));
 });
 
 app.post('/admin/submissions/:id/delete', requireAdmin, async (req, res) => {
@@ -364,103 +372,158 @@ function fmtMoney(n, cur) {
   return sym + Number(n || 0).toLocaleString('en', { maximumFractionDigits: 0 });
 }
 
+// Wraps raw CFO report inner HTML in a full styled standalone document
+function buildReportDoc(d) {
+  const date = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+  const esc = s => (s || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
+<title>CFO Report — ${esc(d.challengeName)}</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',system-ui,sans-serif;font-size:10.5pt;line-height:1.75;color:#1A1A1A;background:#F0F4F8}
+.page{max-width:820px;margin:2rem auto;background:white;border-radius:12px;overflow:hidden;box-shadow:0 4px 32px rgba(0,42,92,0.12)}
+.cover{background:#002A5C;color:white;padding:2.5rem 3rem 2.2rem}
+.cover-eyebrow{font-size:8pt;font-weight:600;letter-spacing:0.18em;text-transform:uppercase;color:rgba(255,255,255,0.4);margin-bottom:0.5rem}
+.cover-title{font-family:'Playfair Display',Georgia,serif;font-size:20pt;font-weight:700;line-height:1.2;color:#fff;margin-bottom:0.2rem}
+.cover-subtitle{font-family:'Playfair Display',Georgia,serif;font-size:11pt;color:rgba(255,255,255,0.5);font-weight:600;margin-bottom:1rem}
+.cover-rule{height:3px;background:#C9A84C;width:56px;margin:1rem 0 1.1rem;border-radius:2px}
+.cover-meta{font-size:8.5pt;color:rgba(255,255,255,0.55);line-height:2}
+.cover-meta strong{color:rgba(255,255,255,0.85);font-weight:600}
+.body-wrap{padding:2.5rem 3rem}
+h3{font-family:'Playfair Display',Georgia,serif;font-size:11.5pt;color:#002A5C;margin:2rem 0 0.6rem;padding-bottom:0.35rem;border-bottom:2px solid #4AABE8;font-weight:700}
+h3:first-child{margin-top:0}
+p{margin-bottom:0.8rem}
+ul,ol{padding-left:1.5rem;margin-bottom:0.8rem}
+li{margin-bottom:0.3rem}
+strong{color:#002A5C;font-weight:600}
+.highlight-box{background:#EEF6FB;border-left:4px solid #4AABE8;padding:1rem 1.25rem;margin:0.5rem 0 1.25rem;border-radius:0 6px 6px 0}
+table{width:100%;border-collapse:collapse;margin:0.75rem 0;font-size:9.5pt}
+th{background:#002A5C;color:white;padding:0.5rem 0.75rem;text-align:left;font-weight:600;font-size:8.5pt}
+td{padding:0.45rem 0.75rem;border-bottom:1px solid #D5E6F5}
+tr:nth-child(even) td{background:#F3F8FC}
+.doc-footer{margin-top:2.5rem;padding:1rem 3rem;background:#F8FAFC;border-top:1px solid #D5E6F5;display:flex;justify-content:space-between;align-items:center;font-size:8pt;color:#aaa}
+.doc-footer-brand{color:#002A5C;font-weight:600}
+@media print{body{background:white}.page{box-shadow:none;border-radius:0;margin:0}}
+</style></head><body>
+<div class="page">
+  <div class="cover">
+    <div class="cover-eyebrow">Sustainability Strategy Compass · Executive Report</div>
+    <div class="cover-title">${esc(d.challengeName) || 'Sustainability Strategy Opportunity'}</div>
+    <div class="cover-subtitle">CFO-Ready Investment Memo</div>
+    <div class="cover-rule"></div>
+    <div class="cover-meta">
+      <strong>Group:</strong> ${esc(d.groupName)}<br>
+      ${d.industry ? `<strong>Industry:</strong> ${esc(d.industry)}<br>` : ''}
+      <strong>Cohort:</strong> ${esc(d.cohortName)}&nbsp;·&nbsp;<strong>Submitted by:</strong> ${esc(d.username)}<br>
+      <strong>Date:</strong> ${date}
+    </div>
+  </div>
+  <div class="body-wrap">
+    ${d.reportHtml || '<p style="color:#aaa;font-style:italic">CFO report was not generated before submission.</p>'}
+    <div class="doc-footer">
+      <span class="doc-footer-brand">© AcpitConsulting · Sustainability Strategy Compass</span>
+      <span>${date}</span>
+    </div>
+  </div>
+</div>
+</body></html>`;
+}
+
 async function sendEmail(d) {
   const activeSth = (d.stakeholders || []).filter(s => s.on);
+  const esc = s => (s || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
   const sthRows = activeSth.length
     ? activeSth.map(s => `
         <tr>
-          <td style="padding:7px 10px;border-bottom:1px solid #eee;font-size:0.85rem">${STH_LABELS[s.id] || s.id}</td>
-          <td style="padding:7px 10px;border-bottom:1px solid #eee;font-size:0.85rem">${s.who || '—'}</td>
-          <td style="padding:7px 10px;border-bottom:1px solid #eee;font-size:0.85rem">${s.pressure || '—'}</td>
-          <td style="padding:7px 10px;border-bottom:1px solid #eee;font-size:0.85rem">${s.opp || '—'}</td>
+          <td style="padding:8px 12px;border-bottom:1px solid #EEF2F8;font-size:0.83rem;color:#555">${STH_LABELS[s.id] || s.id}</td>
+          <td style="padding:8px 12px;border-bottom:1px solid #EEF2F8;font-size:0.83rem">${esc(s.who) || '—'}</td>
+          <td style="padding:8px 12px;border-bottom:1px solid #EEF2F8;font-size:0.83rem">${esc(s.pressure) || '—'}</td>
+          <td style="padding:8px 12px;border-bottom:1px solid #EEF2F8;font-size:0.83rem">${esc(s.opp) || '—'}</td>
         </tr>`).join('')
-    : `<tr><td colspan="4" style="padding:10px;color:#aaa;font-style:italic">No stakeholders entered</td></tr>`;
+    : `<tr><td colspan="4" style="padding:10px 12px;color:#bbb;font-style:italic;font-size:0.83rem">No stakeholders entered</td></tr>`;
 
   const benRows = (d.benefitLines || []).length
     ? (d.benefitLines || []).map(l => `
         <tr>
-          <td style="padding:7px 10px;border-bottom:1px solid #eee;font-size:0.85rem">${l.blabel || l.opp || '—'}</td>
-          <td style="padding:7px 10px;border-bottom:1px solid #eee;font-size:0.85rem;font-weight:600">${fmtMoney(l.ann, d.currency)}/yr</td>
+          <td style="padding:8px 12px;border-bottom:1px solid #EEF2F8;font-size:0.83rem">${esc(l.blabel || l.opp) || '—'}</td>
+          <td style="padding:8px 12px;border-bottom:1px solid #EEF2F8;font-size:0.83rem;font-weight:600;color:#002A5C">${fmtMoney(l.ann, d.currency)}/yr</td>
         </tr>`).join('')
-    : `<tr><td colspan="2" style="padding:10px;color:#aaa;font-style:italic">No benefit lines entered</td></tr>`;
+    : `<tr><td colspan="2" style="padding:10px 12px;color:#bbb;font-style:italic;font-size:0.83rem">No benefit lines entered</td></tr>`;
 
-  const body = `
-<div style="font-family:Georgia,serif;max-width:680px;margin:0 auto;color:#1A1A1A;border:1px solid #ddd;border-radius:10px;overflow:hidden">
+  const hd = (label) => `<h3 style="font-family:Georgia,serif;color:#002A5C;font-size:0.95rem;font-weight:700;border-bottom:2px solid #4AABE8;padding-bottom:6px;margin:24px 0 14px">${label}</h3>`;
+  const metaRow = (label, val, bold) => `<tr>
+    <td style="padding:5px 0;color:#888;font-size:0.82rem;width:140px;vertical-align:top">${label}</td>
+    <td style="padding:5px 0;font-size:0.88rem;${bold?'font-weight:600;color:#002A5C':''}">${val || '—'}</td></tr>`;
+  const thStyle = 'padding:9px 12px;text-align:left;font-weight:600;font-size:0.78rem;background:#002A5C;color:white';
 
-  <div style="background:#004080;color:white;padding:24px 32px">
-    <h2 style="margin:0;font-size:1.25rem;font-weight:700">SustComp — Submission Report</h2>
-    <p style="margin:6px 0 0;opacity:0.65;font-size:0.82rem">
-      ${new Date().toLocaleString('en-GB', { dateStyle: 'full', timeStyle: 'short' })}
-    </p>
+  const body = `<div style="font-family:'DM Sans',system-ui,sans-serif;max-width:700px;margin:0 auto;background:#F0F4F8;padding:1.5rem">
+<div style="background:white;border-radius:12px;overflow:hidden;box-shadow:0 2px 16px rgba(0,42,92,0.1)">
+
+  <!-- HEADER -->
+  <div style="background:#002A5C;padding:24px 32px 20px">
+    <div style="font-size:8pt;font-weight:600;letter-spacing:0.15em;text-transform:uppercase;color:rgba(255,255,255,0.4);margin-bottom:6px">Sustainability Strategy Compass</div>
+    <div style="font-family:Georgia,serif;font-size:17pt;font-weight:700;color:white;line-height:1.2;margin-bottom:4px">${esc(d.challengeName) || 'Submission Report'}</div>
+    <div style="height:3px;background:#C9A84C;width:48px;margin:12px 0 10px;border-radius:2px"></div>
+    <div style="font-size:8.5pt;color:rgba(255,255,255,0.5);line-height:1.9">
+      <strong style="color:rgba(255,255,255,0.8)">${esc(d.groupName) || 'Group'}</strong> &nbsp;·&nbsp;
+      ${esc(d.cohortName) || 'No cohort'} &nbsp;·&nbsp;
+      ${new Date().toLocaleString('en-GB', { dateStyle: 'long', timeStyle: 'short' })}
+    </div>
   </div>
 
-  <div style="padding:24px 32px;background:#f7f9fc">
+  <!-- BODY -->
+  <div style="padding:24px 32px">
 
-    <table style="width:100%;border-collapse:collapse;margin-bottom:20px">
-      <tr><td style="padding:4px 0;color:#666;font-size:0.85rem;width:150px">Cohort / Session</td>
-          <td style="padding:4px 0;font-weight:700">${d.cohortName || '—'}</td></tr>
-      <tr><td style="padding:4px 0;color:#666;font-size:0.85rem">Username</td>
-          <td style="padding:4px 0;font-weight:700">${d.username}</td></tr>
-      <tr><td style="padding:4px 0;color:#666;font-size:0.85rem">Group Name</td>
-          <td style="padding:4px 0">${d.groupName || '—'}</td></tr>
+    ${hd('Submission Details')}
+    <table style="width:100%;border-collapse:collapse;margin-bottom:4px">
+      ${metaRow('Username', `<code style="background:#F0F4F8;padding:2px 6px;border-radius:4px;font-size:0.82rem">${esc(d.username)}</code>`)}
+      ${metaRow('Industry', esc(d.industry))}
+      ${metaRow('Challenge', esc(d.challengeName), true)}
+      ${metaRow('Description', `<span style="line-height:1.55">${esc(d.challengeDesc)}</span>`)}
     </table>
 
-    <h3 style="color:#004080;border-bottom:2px solid #4AABE8;padding-bottom:6px;margin:20px 0 12px;font-size:1rem">Problem Definition</h3>
-    <table style="width:100%;border-collapse:collapse;margin-bottom:20px">
-      <tr><td style="padding:4px 0;color:#666;font-size:0.85rem;width:150px">Industry</td>
-          <td style="padding:4px 0">${d.industry || '—'}</td></tr>
-      <tr><td style="padding:4px 0;color:#666;font-size:0.85rem;vertical-align:top">Challenge</td>
-          <td style="padding:4px 0;font-weight:700">${d.challengeName || '—'}</td></tr>
-      <tr><td style="padding:4px 0;color:#666;font-size:0.85rem;vertical-align:top">Description</td>
-          <td style="padding:4px 0;line-height:1.5;font-size:0.9rem">${d.challengeDesc || '—'}</td></tr>
+    ${hd('Financial Summary')}
+    <table style="width:100%;border-collapse:collapse;margin-bottom:4px">
+      ${metaRow('Strategic Lever', LEVER_LABELS[d.lever] || d.lever, true)}
+      ${metaRow('Discount Rate', `${d.rate || '—'}%`)}
+      ${metaRow('NPV+ at 5 years', `<span style="color:#1B6B3A;font-weight:700">${fmtMoney(d.npv5, d.currency)}</span>`)}
+      ${metaRow('NPV+ at 10 years', `<span style="color:#1B6B3A;font-weight:700">${fmtMoney(d.npv10, d.currency)}</span>`)}
     </table>
 
-    <h3 style="color:#004080;border-bottom:2px solid #4AABE8;padding-bottom:6px;margin:20px 0 12px;font-size:1rem">Solutions Summary</h3>
-    <table style="width:100%;border-collapse:collapse;margin-bottom:20px">
-      <tr><td style="padding:4px 0;color:#666;font-size:0.85rem;width:150px">Strategic Lever</td>
-          <td style="padding:4px 0;font-weight:700">${LEVER_LABELS[d.lever] || d.lever || '—'}</td></tr>
-      <tr><td style="padding:4px 0;color:#666;font-size:0.85rem">Discount Rate</td>
-          <td style="padding:4px 0">${d.rate || '—'}%</td></tr>
-      <tr><td style="padding:4px 0;color:#666;font-size:0.85rem">NPV+ at 5 years</td>
-          <td style="padding:4px 0;font-weight:700;color:#004080">${fmtMoney(d.npv5, d.currency)}</td></tr>
-      <tr><td style="padding:4px 0;color:#666;font-size:0.85rem">NPV+ at 10 years</td>
-          <td style="padding:4px 0;font-weight:700;color:#004080">${fmtMoney(d.npv10, d.currency)}</td></tr>
-    </table>
-
-    <h3 style="color:#004080;border-bottom:2px solid #4AABE8;padding-bottom:6px;margin:20px 0 12px;font-size:1rem">Q1 — Stakeholder Analysis</h3>
-    <table style="width:100%;border-collapse:collapse;margin-bottom:20px">
-      <thead>
-        <tr style="background:#004080;color:white">
-          <th style="padding:8px 10px;text-align:left;font-weight:500;font-size:0.78rem">Category</th>
-          <th style="padding:8px 10px;text-align:left;font-weight:500;font-size:0.78rem">Who</th>
-          <th style="padding:8px 10px;text-align:left;font-weight:500;font-size:0.78rem">Pressure</th>
-          <th style="padding:8px 10px;text-align:left;font-weight:500;font-size:0.78rem">Opportunity</th>
-        </tr>
-      </thead>
+    ${hd('Q1 — Stakeholder Analysis')}
+    <table style="width:100%;border-collapse:collapse;margin-bottom:4px">
+      <thead><tr>
+        <th style="${thStyle}">Category</th>
+        <th style="${thStyle}">Who</th>
+        <th style="${thStyle}">Pressure</th>
+        <th style="${thStyle}">Opportunity</th>
+      </tr></thead>
       <tbody>${sthRows}</tbody>
     </table>
 
-    <h3 style="color:#004080;border-bottom:2px solid #4AABE8;padding-bottom:6px;margin:20px 0 12px;font-size:1rem">Q3 — Benefit Lines</h3>
-    <table style="width:100%;border-collapse:collapse;margin-bottom:20px">
-      <thead>
-        <tr style="background:#004080;color:white">
-          <th style="padding:8px 10px;text-align:left;font-weight:500;font-size:0.78rem">Benefit</th>
-          <th style="padding:8px 10px;text-align:left;font-weight:500;font-size:0.78rem">Annual Value</th>
-        </tr>
-      </thead>
+    ${hd('Q3 — Benefit Lines')}
+    <table style="width:100%;border-collapse:collapse;margin-bottom:4px">
+      <thead><tr>
+        <th style="${thStyle}">Benefit</th>
+        <th style="${thStyle}">Annual Value</th>
+      </tr></thead>
       <tbody>${benRows}</tbody>
     </table>
 
-    <p style="font-size:0.78rem;color:#999;font-style:italic;margin-top:8px">
-      Full CFO report attached as HTML file. Open in any browser → File → Print → Save as PDF.
-    </p>
+    <div style="margin-top:20px;padding:12px 16px;background:#EEF6FB;border-left:4px solid #4AABE8;border-radius:0 6px 6px 0;font-size:0.8rem;color:#334">
+      The full AI-generated CFO Report is attached as an HTML file. Open in any browser, then File → Print → Save as PDF for a formatted copy.
+    </div>
   </div>
 
-  <div style="background:#002A5C;color:rgba(255,255,255,0.4);padding:12px 32px;font-size:0.73rem">
-    © 2026 AcpitConsulting · SustComp
+  <!-- FOOTER -->
+  <div style="background:#F8FAFC;border-top:1px solid #D5E6F5;padding:12px 32px;display:flex;justify-content:space-between;font-size:7.5pt;color:#bbb">
+    <span style="color:#002A5C;font-weight:600">© AcpitConsulting · Sustainability Strategy Compass</span>
+    <span>${new Date().toLocaleDateString('en-GB', { dateStyle: 'long' })}</span>
   </div>
-</div>`;
+
+</div></div>`;
 
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
@@ -475,7 +538,7 @@ async function sendEmail(d) {
       html:    body,
       attachments: [{
         filename: `sustcomp-${d.username}-${Date.now()}.html`,
-        content:  Buffer.from(d.reportHtml || '<p>No report generated.</p>').toString('base64')
+        content:  Buffer.from(buildReportDoc(d)).toString('base64')
       }]
     })
   });

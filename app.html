@@ -641,34 +641,61 @@ Complete all seven sections. Do not elaborate beyond the limits above.\n\nDate: 
     const win=window.open('','_blank');
     const date=new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
     const chatCount=[st.chats?.q1,st.chats?.q2,st.chats?.q3].flatMap(c=>c||[]).filter(m=>m.role==='assistant').length;
-    win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>CFO Report — ${(st.fish.name||'Sustainability Strategy').replace(/</g,'&lt;')}</title>
+    win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+<title>CFO Report — ${(st.fish.name||'Sustainability Strategy').replace(/</g,'&lt;')}</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
 <style>
-@page{margin:2.2cm 2.5cm}
+@page{margin:2cm 2.5cm}
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:Georgia,'Times New Roman',serif;font-size:10.5pt;line-height:1.72;color:#111;background:white;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-.cover{border-bottom:3px solid #004080;padding-bottom:1.4rem;margin-bottom:2rem}
-h1{font-family:Georgia,serif;font-size:15pt;color:#002A5C;margin-bottom:0.3rem;font-weight:700}
-.meta{font-size:9pt;color:#666;margin-top:0.4rem}
-.ai-note{font-size:8pt;color:#888;margin-top:0.25rem;font-style:italic}
-h3{font-family:Georgia,serif;font-size:11.5pt;color:#002A5C;margin:1.5rem 0 0.45rem;padding-bottom:0.3rem;border-bottom:1px solid #C0D8EE;font-weight:700}
-p{margin-bottom:0.8rem}ul,ol{padding-left:1.4rem;margin-bottom:0.8rem}li{margin-bottom:0.22rem}
-strong{color:#002A5C;font-weight:700}
-.highlight-box{background:#E3EFF9;border-left:4px solid #004080;padding:0.9rem 1.1rem;margin:0.5rem 0 1.2rem;border-radius:3px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-table{width:100%;border-collapse:collapse;margin:0.8rem 0;font-size:9.5pt}
-th{background:#004080;color:white;padding:0.45rem 0.6rem;text-align:left;font-weight:600;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-td{padding:0.45rem 0.6rem;border-bottom:1px solid #D0E0F0}
-tr:nth-child(even) td{background:#EEF4FB;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-footer{margin-top:3rem;padding-top:0.8rem;border-top:1px solid #C0D8EE;font-size:8pt;color:#999;text-align:center}
+body{font-family:'DM Sans',system-ui,sans-serif;font-size:10pt;line-height:1.72;color:#1A1A1A;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+/* ── COVER ── */
+.cover{background:#002A5C;color:white;padding:2.5rem 3rem 2rem;margin-bottom:0;-webkit-print-color-adjust:exact;print-color-adjust:exact;page-break-after:avoid}
+.cover-eyebrow{font-size:7.5pt;font-weight:600;letter-spacing:0.18em;text-transform:uppercase;color:rgba(255,255,255,0.4);margin-bottom:0.6rem}
+.cover-title{font-family:'Playfair Display',Georgia,serif;font-size:19pt;font-weight:700;line-height:1.2;color:#fff;margin-bottom:0.25rem}
+.cover-subtitle{font-family:'Playfair Display',Georgia,serif;font-size:11pt;color:rgba(255,255,255,0.55);margin-bottom:1.1rem;font-weight:600}
+.cover-rule{height:3px;background:#C9A84C;width:56px;margin:1rem 0 1.1rem;border-radius:2px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.cover-meta{font-size:8.5pt;color:rgba(255,255,255,0.55);line-height:1.9}
+.cover-meta strong{color:rgba(255,255,255,0.85);font-weight:600}
+.ai-badge{display:inline-block;background:rgba(74,171,232,0.2);border:1px solid rgba(74,171,232,0.5);border-radius:20px;padding:2px 10px;font-size:7.5pt;color:rgba(255,255,255,0.7);margin-top:0.5rem}
+/* ── BODY ── */
+.body-wrap{padding:2.25rem 3rem}
+h3{font-family:'Playfair Display',Georgia,serif;font-size:11pt;color:#002A5C;margin:1.75rem 0 0.5rem;padding-bottom:0.3rem;border-bottom:2px solid #4AABE8;font-weight:700;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+h3:first-child{margin-top:0}
+p{margin-bottom:0.75rem;font-size:10pt}
+ul,ol{padding-left:1.4rem;margin-bottom:0.75rem}
+li{margin-bottom:0.28rem;font-size:10pt}
+strong{color:#002A5C;font-weight:600}
+.highlight-box{background:#EEF6FB;border-left:4px solid #4AABE8;padding:0.9rem 1.1rem;margin:0.5rem 0 1.2rem;border-radius:0 4px 4px 0;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+table{width:100%;border-collapse:collapse;margin:0.75rem 0;font-size:9pt}
+th{background:#002A5C;color:white;padding:0.45rem 0.7rem;text-align:left;font-weight:600;font-size:8.5pt;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+td{padding:0.4rem 0.7rem;border-bottom:1px solid #D5E6F5;font-size:9.5pt}
+tr:nth-child(even) td{background:#F3F8FC;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+/* ── FOOTER ── */
+.doc-footer{margin-top:2.5rem;padding-top:0.65rem;border-top:1px solid #C0D8EE;display:flex;justify-content:space-between;align-items:center;font-size:7.5pt;color:#aaa}
+.doc-footer-brand{color:#002A5C;font-weight:600;font-size:8pt}
 </style></head><body>
 <div class="cover">
-  <h1>Sustainability Strategy Opportunity: ${(st.fish.name||'Challenge Assessment').replace(/</g,'&lt;')}</h1>
-  <div class="meta">Prepared by: ${(st.grp.name||'Executive Team').replace(/</g,'&lt;')}${st.grp.industry?' · '+st.grp.industry.replace(/</g,'&lt;'):''} &nbsp;·&nbsp; ${date}</div>
-  ${chatCount>0?`<div class="ai-note">Incorporates insights from ${chatCount} AI coaching exchange${chatCount>1?'s':''} across the three analysis stages.</div>`:''}
+  <div class="cover-eyebrow">Sustainability Strategy Compass · Executive Report</div>
+  <div class="cover-title">${(st.fish.name||'Sustainability Strategy Opportunity').replace(/</g,'&lt;')}</div>
+  <div class="cover-subtitle">CFO-Ready Investment Memo</div>
+  <div class="cover-rule"></div>
+  <div class="cover-meta">
+    <strong>Group:</strong> ${(st.grp.name||'Executive Team').replace(/</g,'&lt;')}<br>
+    ${st.grp.industry?`<strong>Industry:</strong> ${st.grp.industry.replace(/</g,'&lt;')}<br>`:''}
+    ${st.grp.members?`<strong>Members:</strong> ${st.grp.members.replace(/</g,'&lt;')}<br>`:''}
+    <strong>Date:</strong> ${date}
+    ${chatCount>0?`<br><span class="ai-badge">✦ Incorporates ${chatCount} AI coaching exchange${chatCount>1?'s':''}</span>`:''}
+  </div>
 </div>
+<div class="body-wrap">
 ${html}
-<footer>© AcpitConsulting &nbsp;·&nbsp; ${date}</footer>
+<div class="doc-footer">
+  <span class="doc-footer-brand">© AcpitConsulting · Sustainability Strategy Compass</span>
+  <span>${date}</span>
+</div>
+</div>
 </body></html>`);
-    win.document.close();win.focus();setTimeout(()=>win.print(),600);
+    win.document.close();win.focus();setTimeout(()=>win.print(),800);
   };
 
   return(
